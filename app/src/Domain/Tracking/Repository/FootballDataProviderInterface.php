@@ -6,6 +6,9 @@ namespace App\Domain\Tracking\Repository;
 
 interface FootballDataProviderInterface
 {
+    /** @return array{code: string, name: string} */
+    public function fetchCompetition(string $competitionCode): array;
+
     /** @return array<int, array{id: int, name: string}> */
     public function fetchTeams(string $competitionCode): array;
 

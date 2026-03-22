@@ -30,3 +30,11 @@ services:
             $apiKey: 'test_key'
         autowire: true
         public: true
+
+    App\Application\Tracking\Service\SeasonSeedService:
+        autowire: true
+        public: true
+
+    App\Application\Tracking\Service\SyncService:
+        autowire: true
+        public: true
