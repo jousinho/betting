@@ -25,6 +25,7 @@
         thead th { text-align: left; padding: 0.5rem 0.75rem; color: #64748b; font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
         tbody tr { border-bottom: 1px solid #1e293b; }
         tbody tr:hover { background: #1e293b; }
+        tbody tr.match-start td { border-top: 2px solid #475569; }
         tbody td { padding: 0.6rem 0.75rem; color: #cbd5e1; }
 
         .badge { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
@@ -49,6 +50,18 @@
         .section-card-header { padding: 0.75rem 1rem; border-bottom: 1px solid #334155; font-size: 0.85rem; font-weight: 600; color: #94a3b8; }
 
         .empty { color: #475569; font-size: 0.875rem; padding: 2rem; text-align: center; }
+
+        .bar-track { background: #0f172a; border-radius: 4px; height: 8px; width: 100%; min-width: 120px; overflow: hidden; display: inline-block; vertical-align: middle; }
+        .bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+        .bar-fill-green  { background: #22c55e; }
+        .bar-fill-yellow { background: #eab308; }
+        .bar-fill-red    { background: #ef4444; }
+        .bar-fill-blue   { background: #38bdf8; }
+        .rate-label { display: inline-block; width: 40px; text-align: right; font-weight: 600; margin-right: 8px; }
+        .matchday-bar { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 4px; font-size: 0.78rem; }
+        .matchday-bar .jornada { width: 70px; color: #64748b; flex-shrink: 0; }
+        .matchday-bar .count { width: 50px; color: #475569; flex-shrink: 0; text-align: right; font-size: 0.72rem; }
+        .matchday-bar .bar-track { flex: 1; }
     </style>
 </head>
 <body>
@@ -57,6 +70,7 @@
     <div class="nav-links">
         <a href="/dashboard" {% if app_route is defined and app_route == 'dashboard' %}class="active"{% endif %}>Dashboard</a>
         <a href="/history" {% if app_route is defined and app_route == 'history' %}class="active"{% endif %}>Historial</a>
+        <a href="/stats" {% if app_route is defined and app_route == 'stats' %}class="active"{% endif %}>Estadísticas</a>
     </div>
 </nav>
 <div class="container">

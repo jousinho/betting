@@ -26,7 +26,7 @@
                 {% for row in rows %}
                     {% set match = row.match %}
                     {% for bet in row.bets %}
-                        <tr>
+                        <tr {% if loop.first %}class="match-start"{% endif %}>
                             {% if loop.first %}
                                 <td rowspan="{{ row.bets|length }}">
                                     <a href="/team/{{ match.homeTeam.externalId }}">{{ match.homeTeam.name }}</a>

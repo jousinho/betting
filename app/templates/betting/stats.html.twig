@@ -1,0 +1,149 @@
+{% extends 'layout.html.twig' %}
+{% set app_route = 'stats' %}
+
+{% block title %}Estadísticas de temporada{% endblock %}
+
+{% block content %}
+<h1>Estadísticas de temporada</h1>
+
+{% if data is null %}
+    <p class="empty">No hay datos todavía.</p>
+{% else %}
+
+{# ── Resumen ─────────────────────────────────────────────── #}
+<div class="stat-grid" style="margin-bottom:2rem;">
+    <div class="stat-card">
+        <div class="label">Apuestas totales</div>
+        <div class="value">{{ data.total }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Ganadas</div>
+        <div class="value" style="color:#4ade80">{{ data.won }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Perdidas</div>
+        <div class="value" style="color:#f87171">{{ data.lost }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">% Acierto global</div>
+        <div class="value" style="color:{% if data.rate >= 60 %}#4ade80{% elseif data.rate >= 50 %}#eab308{% else %}#f87171{% endif %}">{{ data.rate }}%</div>
+        <div class="sub">
+            <div class="bar-track" style="margin-top:6px">
+                <div class="bar-fill {% if data.rate >= 60 %}bar-fill-green{% elseif data.rate >= 50 %}bar-fill-yellow{% else %}bar-fill-red{% endif %}" style="width:{{ data.rate }}%"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+
+{# ── Por tipo de apuesta ──────────────────────────────────── #}
+<div>
+    <h2 style="margin-top:0">Por tipo de apuesta</h2>
+    <div class="section-card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Tipo</th>
+                    <th style="text-align:right">% acierto</th>
+                    <th>W / T</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for type, g in data.byType %}
+                <tr>
+                    <td>{{ type|replace({'_': ' '})|upper }}</td>
+                    <td style="text-align:right">
+                        <span class="rate-label" style="color:{% if g.rate >= 65 %}#4ade80{% elseif g.rate >= 50 %}#eab308{% else %}#f87171{% endif %}">{{ g.rate }}%</span>
+                        <span class="bar-track" style="width:80px">
+                            <span class="bar-fill {% if g.rate >= 65 %}bar-fill-green{% elseif g.rate >= 50 %}bar-fill-yellow{% else %}bar-fill-red{% endif %}" style="width:{{ g.rate }}%; display:block; height:100%"></span>
+                        </span>
+                    </td>
+                    <td style="color:#64748b; font-size:0.8rem">{{ g.won }} / {{ g.total }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# ── Por perspectiva ─────────────────────────────────────── #}
+<div>
+    <h2 style="margin-top:0">Por perspectiva</h2>
+    <div class="section-card" style="margin-bottom:1.5rem">
+        <table>
+            <thead>
+                <tr>
+                    <th>Perspectiva</th>
+                    <th style="text-align:right">% acierto</th>
+                    <th>W / T</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for persp, g in data.byPerspective %}
+                <tr>
+                    <td>
+                        {% if persp == 'home' %}🏠 Local
+                        {% elseif persp == 'away' %}✈️ Visitante
+                        {% else %}⇄ Ambos{% endif %}
+                    </td>
+                    <td style="text-align:right">
+                        <span class="rate-label" style="color:{% if g.rate >= 65 %}#4ade80{% elseif g.rate >= 50 %}#eab308{% else %}#f87171{% endif %}">{{ g.rate }}%</span>
+                        <span class="bar-track" style="width:80px">
+                            <span class="bar-fill {% if g.rate >= 65 %}bar-fill-green{% elseif g.rate >= 50 %}bar-fill-yellow{% else %}bar-fill-red{% endif %}" style="width:{{ g.rate }}%; display:block; height:100%"></span>
+                        </span>
+                    </td>
+                    <td style="color:#64748b; font-size:0.8rem">{{ g.won }} / {{ g.total }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <h2>Top 10 equipos (apuestas ganadas)</h2>
+    <div class="section-card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Equipo</th>
+                    <th style="text-align:right">% acierto</th>
+                    <th>W / T</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for teamName, g in data.topTeams %}
+                <tr>
+                    <td style="font-size:0.82rem">{{ teamName }}</td>
+                    <td style="text-align:right">
+                        <span class="rate-label" style="color:{% if g.rate >= 65 %}#4ade80{% elseif g.rate >= 50 %}#eab308{% else %}#f87171{% endif %}">{{ g.rate }}%</span>
+                        <span class="bar-track" style="width:80px">
+                            <span class="bar-fill {% if g.rate >= 65 %}bar-fill-green{% elseif g.rate >= 50 %}bar-fill-yellow{% else %}bar-fill-red{% endif %}" style="width:{{ g.rate }}%; display:block; height:100%"></span>
+                        </span>
+                    </td>
+                    <td style="color:#64748b; font-size:0.8rem">{{ g.won }} / {{ g.total }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</div>
+
+{# ── Por jornada (gráfico) ───────────────────────────────── #}
+<h2>% Acierto por jornada</h2>
+<div class="section-card" style="padding:1rem 1.25rem">
+    {% for matchday, g in data.byMatchday %}
+        <div class="matchday-bar">
+            <span class="jornada">J{{ matchday }}</span>
+            <span class="bar-track">
+                <span class="bar-fill {% if g.rate >= 65 %}bar-fill-green{% elseif g.rate >= 50 %}bar-fill-yellow{% else %}bar-fill-red{% endif %}" style="width:{{ g.rate }}%; display:block; height:100%"></span>
+            </span>
+            <span style="width:36px; text-align:right; font-weight:600; font-size:0.78rem; color:{% if g.rate >= 65 %}#4ade80{% elseif g.rate >= 50 %}#eab308{% else %}#f87171{% endif %}">{{ g.rate }}%</span>
+            <span class="count">{{ g.won }}/{{ g.total }}</span>
+        </div>
+    {% endfor %}
+</div>
+
+{% endif %}
+{% endblock %}
