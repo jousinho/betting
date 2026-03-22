@@ -3,3 +3,9 @@ tracking_controllers:
         path: ../src/Infrastructure/Tracking/Http/Controller/
         namespace: App\Infrastructure\Tracking\Http\Controller
     type: attribute
+
+betting_controllers:
+    resource:
+        path: ../src/Infrastructure/Betting/Http/Controller/
+        namespace: App\Infrastructure\Betting\Http\Controller
+    type: attribute

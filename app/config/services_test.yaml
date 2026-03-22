@@ -56,3 +56,8 @@ services:
         autowire: true
         public: true
         tags: ['controller.service_arguments']
+
+    App\Infrastructure\Betting\Http\Controller\BettingController:
+        autowire: true
+        public: true
+        tags: ['controller.service_arguments']

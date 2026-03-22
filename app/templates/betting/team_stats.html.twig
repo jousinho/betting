@@ -1,0 +1,141 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}{{ team.name }} — Estadísticas{% endblock %}
+
+{% block content %}
+<h1>{{ team.name }}</h1>
+
+<h2>Forma reciente</h2>
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="label">Últimos 5 en casa</div>
+        <div class="value form-str">
+            {% for char in stats.formLast5Home|split('') %}
+                <span class="form-{{ char }}">{{ char }}</span>
+            {% endfor %}
+            {% if stats.formLast5Home is empty %}<span style="color:#475569">—</span>{% endif %}
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Últimos 5 fuera</div>
+        <div class="value form-str">
+            {% for char in stats.formLast5Away|split('') %}
+                <span class="form-{{ char }}">{{ char }}</span>
+            {% endfor %}
+            {% if stats.formLast5Away is empty %}<span style="color:#475569">—</span>{% endif %}
+        </div>
+    </div>
+</div>
+
+<h2>Estadísticas en casa ({{ stats.matchesPlayedHome }} partidos)</h2>
+{% if stats.matchesPlayedHome > 0 %}
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="label">Over 1.5</div>
+        <div class="value">{{ ((stats.over15Home / stats.matchesPlayedHome) * 100)|round }}%</div>
+        <div class="sub">{{ stats.over15Home }}/{{ stats.matchesPlayedHome }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Over 2.5</div>
+        <div class="value">{{ ((stats.over25Home / stats.matchesPlayedHome) * 100)|round }}%</div>
+        <div class="sub">{{ stats.over25Home }}/{{ stats.matchesPlayedHome }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Over 3.5</div>
+        <div class="value">{{ ((stats.over35Home / stats.matchesPlayedHome) * 100)|round }}%</div>
+        <div class="sub">{{ stats.over35Home }}/{{ stats.matchesPlayedHome }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">BTTS</div>
+        <div class="value">{{ ((stats.bttsHome / stats.matchesPlayedHome) * 100)|round }}%</div>
+        <div class="sub">{{ stats.bttsHome }}/{{ stats.matchesPlayedHome }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Portería a 0</div>
+        <div class="value">{{ ((stats.cleanSheetHome / stats.matchesPlayedHome) * 100)|round }}%</div>
+        <div class="sub">{{ stats.cleanSheetHome }}/{{ stats.matchesPlayedHome }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Over 0.5 HT</div>
+        <div class="value">{{ ((stats.over05HtHome / stats.matchesPlayedHome) * 100)|round }}%</div>
+        <div class="sub">{{ stats.over05HtHome }}/{{ stats.matchesPlayedHome }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Gana ambas partes</div>
+        <div class="value">{{ ((stats.winBothHalvesHome / stats.matchesPlayedHome) * 100)|round }}%</div>
+        <div class="sub">{{ stats.winBothHalvesHome }}/{{ stats.matchesPlayedHome }}</div>
+    </div>
+</div>
+{% else %}
+    <p class="empty">Sin partidos en casa.</p>
+{% endif %}
+
+<h2>Estadísticas fuera ({{ stats.matchesPlayedAway }} partidos)</h2>
+{% if stats.matchesPlayedAway > 0 %}
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="label">Over 1.5</div>
+        <div class="value">{{ ((stats.over15Away / stats.matchesPlayedAway) * 100)|round }}%</div>
+        <div class="sub">{{ stats.over15Away }}/{{ stats.matchesPlayedAway }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Over 2.5</div>
+        <div class="value">{{ ((stats.over25Away / stats.matchesPlayedAway) * 100)|round }}%</div>
+        <div class="sub">{{ stats.over25Away }}/{{ stats.matchesPlayedAway }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Over 3.5</div>
+        <div class="value">{{ ((stats.over35Away / stats.matchesPlayedAway) * 100)|round }}%</div>
+        <div class="sub">{{ stats.over35Away }}/{{ stats.matchesPlayedAway }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">BTTS</div>
+        <div class="value">{{ ((stats.bttsAway / stats.matchesPlayedAway) * 100)|round }}%</div>
+        <div class="sub">{{ stats.bttsAway }}/{{ stats.matchesPlayedAway }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Over 0.5 HT</div>
+        <div class="value">{{ ((stats.over05HtAway / stats.matchesPlayedAway) * 100)|round }}%</div>
+        <div class="sub">{{ stats.over05HtAway }}/{{ stats.matchesPlayedAway }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Gana ambas partes</div>
+        <div class="value">{{ ((stats.winBothHalvesAway / stats.matchesPlayedAway) * 100)|round }}%</div>
+        <div class="sub">{{ stats.winBothHalvesAway }}/{{ stats.matchesPlayedAway }}</div>
+    </div>
+</div>
+{% else %}
+    <p class="empty">Sin partidos fuera.</p>
+{% endif %}
+
+{% if betsByType is not empty %}
+<h2>Historial de apuestas por tipo</h2>
+<div class="section-card">
+    <table>
+        <thead>
+            <tr>
+                <th>Tipo</th>
+                <th>Ganadas</th>
+                <th>Perdidas</th>
+                <th>Total</th>
+                <th>% acierto</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for betType, bets in betsByType %}
+            {% set won = bets|filter(b => b.status == 'WON' and not b.skipped)|length %}
+            {% set lost = bets|filter(b => b.status == 'LOST' and not b.skipped)|length %}
+            {% set total = won + lost %}
+            <tr>
+                <td>{{ betType|replace({'_': ' '})|upper }}</td>
+                <td style="color:#4ade80">{{ won }}</td>
+                <td style="color:#f87171">{{ lost }}</td>
+                <td>{{ total }}</td>
+                <td>{{ total > 0 ? ((won / total) * 100)|round ~ '%' : '—' }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

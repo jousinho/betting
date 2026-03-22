@@ -1,0 +1,57 @@
+{% extends 'layout.html.twig' %}
+{% set app_route = 'dashboard' %}
+
+{% block title %}Dashboard — Próximos partidos{% endblock %}
+
+{% block content %}
+<h1>Próximos partidos</h1>
+
+{% if byMatchday is empty %}
+    <p class="empty">No hay partidos programados.</p>
+{% else %}
+    {% for matchday, matches in byMatchday %}
+        <h2>Jornada {{ matchday }}</h2>
+        <div class="section-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Local</th>
+                        <th></th>
+                        <th>Visitante</th>
+                        <th>Apuestas activas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for match in matches %}
+                    {% set matchId = match.id.toRfc4122 %}
+                    {% set bets = betsByMatchId[matchId] ?? [] %}
+                    <tr>
+                        <td>{{ match.playedAt|date('d/m H:i') }}</td>
+                        <td>
+                            <a href="/team/{{ match.homeTeam.externalId }}">{{ match.homeTeam.name }}</a>
+                        </td>
+                        <td style="color:#475569; font-size:0.8rem; text-align:center;">vs</td>
+                        <td>
+                            <a href="/team/{{ match.awayTeam.externalId }}">{{ match.awayTeam.name }}</a>
+                        </td>
+                        <td>
+                            {% if bets is empty %}
+                                <span style="color:#475569; font-size:0.8rem;">—</span>
+                            {% else %}
+                                {% for bet in bets %}
+                                    <span class="badge badge-bet" title="{{ bet.perspective }}">
+                                        {{ bet.betType|replace({'_': ' '})|upper }}
+                                        {% if bet.perspective == 'home' %}🏠{% elseif bet.perspective == 'away' %}✈️{% elseif bet.perspective == 'both' %}⇄{% endif %}
+                                    </span>
+                                {% endfor %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endfor %}
+{% endif %}
+{% endblock %}
