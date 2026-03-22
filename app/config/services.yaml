@@ -49,3 +49,7 @@ services:
     App\Infrastructure\Tracking\Http\Controller\DashboardController:
         autowire: true
         tags: ['controller.service_arguments']
+
+    App\Infrastructure\Betting\Http\Controller\BettingController:
+        autowire: true
+        tags: ['controller.service_arguments']

@@ -1,0 +1,65 @@
+{% extends 'layout.html.twig' %}
+{% set app_route = 'history' %}
+
+{% block title %}Historial de apuestas{% endblock %}
+
+{% block content %}
+<h1>Historial de apuestas</h1>
+
+{% if byMatchday is empty %}
+    <p class="empty">No hay apuestas liquidadas todavía.</p>
+{% else %}
+    {% for matchday, rows in byMatchday %}
+        <h2>Jornada {{ matchday }}</h2>
+        <div class="section-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Partido</th>
+                        <th>Resultado</th>
+                        <th>Tipo</th>
+                        <th>Perspectiva</th>
+                        <th>Resultado apuesta</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for row in rows %}
+                    {% set match = row.match %}
+                    {% for bet in row.bets %}
+                        <tr>
+                            {% if loop.first %}
+                                <td rowspan="{{ row.bets|length }}">
+                                    <a href="/team/{{ match.homeTeam.externalId }}">{{ match.homeTeam.name }}</a>
+                                    vs
+                                    <a href="/team/{{ match.awayTeam.externalId }}">{{ match.awayTeam.name }}</a>
+                                </td>
+                                <td rowspan="{{ row.bets|length }}" style="font-weight:600;">
+                                    {{ match.homeGoalsFt }}–{{ match.awayGoalsFt }}
+                                    <span style="color:#475569; font-size:0.75rem;">({{ match.homeGoalsHt }}–{{ match.awayGoalsHt }})</span>
+                                </td>
+                            {% endif %}
+                            <td>{{ bet.betType|replace({'_': ' '})|upper }}</td>
+                            <td>
+                                {% if bet.perspective == 'home' %}🏠 Local
+                                {% elseif bet.perspective == 'away' %}✈️ Visitante
+                                {% else %}⇄ Ambos{% endif %}
+                            </td>
+                            <td>
+                                {% if bet.skipped %}
+                                    <span class="badge badge-skipped">Omitida</span>
+                                    <span class="badge badge-{{ bet.status|lower }}">{{ bet.status == 'WON' ? 'Ganada' : 'Perdida' }}</span>
+                                {% elseif bet.status == 'WON' %}
+                                    <span class="badge badge-won">✓ Ganada</span>
+                                {% else %}
+                                    <span class="badge badge-lost">✗ Perdida</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endfor %}
+{% endif %}
+{% endblock %}

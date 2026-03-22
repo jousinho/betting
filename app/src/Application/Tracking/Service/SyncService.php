@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Tracking\Service;
 
+use App\Application\Betting\Service\BetGeneratorService;
+use App\Application\Betting\Service\BetSettlementService;
 use App\Domain\Tracking\Entity\Competition;
 use App\Domain\Tracking\Entity\SyncState;
 use App\Domain\Tracking\Repository\FootballDataProviderInterface;
@@ -18,6 +20,8 @@ class SyncService
         private readonly LeagueMatchRepositoryInterface $leagueMatchRepository,
         private readonly NonLeagueMatchRepositoryInterface $nonLeagueMatchRepository,
         private readonly SyncStateRepositoryInterface $syncStateRepository,
+        private readonly BetSettlementService $settlementService,
+        private readonly BetGeneratorService $generatorService,
     ) {}
 
     public function sync(Competition $competition): void
@@ -30,6 +34,8 @@ class SyncService
 
         $this->syncLeagueMatches($competition);
         $this->syncNonLeagueMatches();
+        $this->settlementService->settleAll($competition);
+        $this->generatorService->generate($competition);
         $this->updateSyncState($competition, $syncState);
     }
 

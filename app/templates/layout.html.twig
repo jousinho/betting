@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Betting Analytics{% endblock %}</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+        a { color: #38bdf8; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        nav { background: #1e293b; border-bottom: 1px solid #334155; padding: 0 2rem; display: flex; align-items: center; gap: 2rem; height: 56px; }
+        nav .brand { font-weight: 700; font-size: 1.1rem; color: #f1f5f9; letter-spacing: 0.02em; }
+        nav .nav-links { display: flex; gap: 1.5rem; }
+        nav .nav-links a { color: #94a3b8; font-size: 0.9rem; }
+        nav .nav-links a:hover, nav .nav-links a.active { color: #f1f5f9; text-decoration: none; }
+
+        .container { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
+        h1 { font-size: 1.4rem; font-weight: 600; color: #f1f5f9; margin-bottom: 1.5rem; }
+        h2 { font-size: 1.1rem; font-weight: 600; color: #cbd5e1; margin: 1.5rem 0 0.75rem; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        thead tr { border-bottom: 1px solid #334155; }
+        thead th { text-align: left; padding: 0.5rem 0.75rem; color: #64748b; font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        tbody tr { border-bottom: 1px solid #1e293b; }
+        tbody tr:hover { background: #1e293b; }
+        tbody td { padding: 0.6rem 0.75rem; color: #cbd5e1; }
+
+        .badge { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+        .badge-won    { background: #14532d; color: #4ade80; }
+        .badge-lost   { background: #450a0a; color: #f87171; }
+        .badge-pending { background: #1e3a5f; color: #38bdf8; }
+        .badge-skipped { background: #1c1917; color: #78716c; }
+        .badge-bet { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+
+        .form-str { font-family: monospace; letter-spacing: 0.1em; font-size: 0.8rem; }
+        .form-W { color: #4ade80; }
+        .form-D { color: #facc15; }
+        .form-L { color: #f87171; }
+
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+        .stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 0.75rem 1rem; }
+        .stat-card .label { color: #64748b; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+        .stat-card .value { color: #f1f5f9; font-size: 1.25rem; font-weight: 700; }
+        .stat-card .sub { color: #475569; font-size: 0.75rem; margin-top: 0.15rem; }
+
+        .section-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; overflow: hidden; margin-bottom: 1.5rem; }
+        .section-card-header { padding: 0.75rem 1rem; border-bottom: 1px solid #334155; font-size: 0.85rem; font-weight: 600; color: #94a3b8; }
+
+        .empty { color: #475569; font-size: 0.875rem; padding: 2rem; text-align: center; }
+    </style>
+</head>
+<body>
+<nav>
+    <span class="brand">⚽ Betting Analytics</span>
+    <div class="nav-links">
+        <a href="/dashboard" {% if app_route is defined and app_route == 'dashboard' %}class="active"{% endif %}>Dashboard</a>
+        <a href="/history" {% if app_route is defined and app_route == 'history' %}class="active"{% endif %}>Historial</a>
+    </div>
+</nav>
+<div class="container">
+    {% block content %}{% endblock %}
+</div>
+</body>
+</html>

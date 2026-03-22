@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Tracking\Service;
 
+use App\Application\Betting\Service\BetGeneratorService;
 use App\Domain\Tracking\Entity\Competition;
 use App\Domain\Tracking\Entity\LeagueMatch;
 use App\Domain\Tracking\Entity\NonLeagueMatch;
@@ -22,6 +23,7 @@ class SeasonSeedService
         private readonly TeamRepositoryInterface $teamRepository,
         private readonly LeagueMatchRepositoryInterface $leagueMatchRepository,
         private readonly NonLeagueMatchRepositoryInterface $nonLeagueMatchRepository,
+        private readonly BetGeneratorService $generatorService,
     ) {}
 
     public function seed(string $competitionCode): void
@@ -30,6 +32,7 @@ class SeasonSeedService
         $teams = $this->seedTeams($competition);
         $this->seedLeagueMatches($competition, $teams);
         $this->seedNonLeagueMatches($competition, $teams);
+        $this->generatorService->generate($competition);
     }
 
     private function findOrCreateCompetition(string $competitionCode): Competition
