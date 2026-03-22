@@ -136,15 +136,15 @@ Una fila por competición. Permite saber si ya se sincronizó hoy sin repetir ll
 
 ---
 
-## Tipos de apuesta a calcular _(fase posterior)_
+## Tipos de apuesta a calcular — Fase 2
 
-Los mismos que BetProject:
+Mismos criterios que BetProject:
 
 | Criterio | Descripción |
 |----------|-------------|
 | HomeWin | Gana el local |
 | AwayWin | Gana el visitante |
-| DoubleChance | 1X / X2 / 12 |
+| DoubleChance | 1X (local no pierde) |
 | BTTS | Ambos equipos marcan |
 | CleanSheetHome | El local no encaja |
 | Over 0.5 HT | Al menos 1 gol en el primer tiempo |
@@ -153,6 +153,52 @@ Los mismos que BetProject:
 | Over 3.5 | Más de 3.5 goles |
 | Under 2.5 | Menos de 2.5 goles |
 | WinBothHalves | El equipo gana los dos tiempos |
+
+### Diferencias clave respecto a BetProject
+
+#### Las estadísticas se calculan desde nuestra BD, no desde la API
+BetProject mantiene stats en el propio `Team` y las refresca vía API en cada sync.
+Aquí los stats se calculan dinámicamente a partir de los `LeagueMatch` FINISHED que
+ya están en nuestra BD. No hay ningún campo de stats en la entidad `Team`.
+
+#### Una apuesta vinculada al partido, no al equipo
+En BetProject, `Bet` tiene FK al equipo + fecha como identificador del fixture.
+Aquí, `Bet` tiene FK a `LeagueMatch` directamente, con ambos equipos accesibles a
+través del partido.
+
+#### Resolución de conflictos entre apuestas del mismo partido
+Si los criterios del local generan un tipo de apuesta que contradice uno del visitante
+(e.g. local → Over 3.5, visitante → Under 2.5), **se prioriza siempre la apuesta del
+local** y la del visitante se marca como `skipped = true`. Las apuestas skipped NO se
+muestran en el dashboard ni en el historial de apuestas reales, pero SÍ se incluyen en
+las estadísticas del equipo visitante (para medir la efectividad del criterio).
+
+Pares contradictorios definidos:
+- `over_3_5` ↔ `under_2_5`
+- `over_2_5` ↔ `under_2_5`
+- `home_win` ↔ `away_win`
+- `clean_sheet_home` ↔ `btts`
+
+---
+
+## Modelo de datos — Fase 2
+
+### `Bet`
+Un registro por partido × tipo de apuesta. Generada automáticamente al hacer seed y
+al sincronizar (solo para partidos SCHEDULED).
+
+| Campo | Tipo | Notas |
+|-------|------|-------|
+| id (UUID) | uuid | |
+| league_match | FK LeagueMatch | acceso a ambos equipos, jornada, fecha |
+| bet_type | string | `home_win`, `away_win`, `over_2_5`, etc. |
+| perspective | string | `home` \| `away` — qué equipo disparó el criterio |
+| skipped | bool | true si el criterio se cumplió pero la apuesta fue cancelada por conflicto |
+| status | string | `PENDING` \| `WON` \| `LOST` |
+| created_at | datetime | |
+| settled_at | datetime\|null | null mientras PENDING |
+
+**Restricción de unicidad:** `(league_match_id, bet_type)` — una apuesta por partido y tipo.
 
 ---
 
@@ -198,12 +244,84 @@ No hay que recordar en qué jornada te quedaste. La BD lo sabe por el estado de 
 ## Bounded Contexts
 
 - **Tracking** → `Competition`, `Team`, `LeagueMatch`, `NonLeagueMatch`, `SyncState`, cliente HTTP, commands
-- **Betting** → criterios de apuesta, estadísticas _(fase posterior)_
+- **Betting** → `Bet`, criterios, generación, liquidación, vistas Twig
 
 ---
 
-## Fuera de scope — Fase 1
+## Fase 2 — Lógica de apuestas + Vistas
 
-- Lógica de apuestas (criterios, estadísticas, señales)
-- Vistas Twig (se añadirán cuando haya apuestas)
-- Soporte multi-liga activo (el diseño lo permite, pero solo se seedea LaLiga por ahora)
+### Bounded context: Betting
+
+#### `TeamMatchStats` (Value Object — no persiste)
+Calculado al vuelo desde los `LeagueMatch` FINISHED de una temporada. Campos:
+
+```
+formLast5Home / formLast5Away   → "WWDWL" (últimas 5 en casa / fuera)
+matchesPlayedHome / Away        → partidos finalizados
+over15Home/Away, over25Home/Away, over35Home/Away
+over05HtHome/Away
+winBothHalvesHome/Away
+bttsHome/Away
+cleanSheetHome
+```
+
+#### `TeamStatsCalculator` (Domain Service)
+Calcula `TeamMatchStats` para un equipo dado a partir de los partidos FINISHED
+de su competición. Un único método: `calculate(Team $team, Competition $competition): TeamMatchStats`.
+
+#### `BetCriterionInterface` (Domain)
+```php
+public function betType(): string;
+public function perspective(): string;    // 'home' | 'away'
+public function isMet(TeamMatchStats $teamStats, TeamMatchStats $opponentStats): bool;
+```
+11 implementaciones (una por tipo), mismos umbrales que BetProject.
+
+#### `BetGeneratorService` (Application)
+Para cada `LeagueMatch` SCHEDULED en la competición:
+1. Calcular `TeamMatchStats` para homeTeam y awayTeam
+2. Evaluar todos los criterios → lista de `(betType, perspective)`
+3. Detectar conflictos → marcar como `skipped` los del visitante que conflicten
+4. Persistir cada apuesta si no existe ya (`league_match_id + bet_type` UNIQUE)
+
+#### `BetSettlementService` (Application)
+Para cada `Bet` PENDING cuyo `LeagueMatch` está FINISHED:
+- Evaluar resultado del partido contra el tipo de apuesta
+- Marcar WON / LOST (incluso si `skipped = true`, para las stats)
+
+#### Integración en el flujo de sync
+`SyncService::sync()` se amplía:
+1. Fetch + settle match results ← ya existe
+2. **Nuevo:** `BetSettlementService::settleAll($competition)` — liquida bets pendientes
+3. **Nuevo:** `BetGeneratorService::generate($competition)` — genera bets para SCHEDULED
+
+`SeasonSeedService::seed()` se amplía:
+4. **Nuevo:** `BetGeneratorService::generate($competition)` al final del seed
+
+### Vistas Twig
+
+#### `/dashboard` — Próximos partidos
+Tabla de partidos SCHEDULED ordenados por `played_at` (próximos primeros):
+- Jornada, fecha/hora, Local vs Visitante
+- Columna "Apuestas activas": iconos/badges por tipo (solo `skipped = false`)
+- Indicador visual si algún equipo tiene partido entre semana (NonLeagueMatch próximo)
+
+#### `/bets/history` — Historial
+Partidos FINISHED agrupados por jornada. Por partido:
+- Resultado (marcador final)
+- Columna de apuestas: badge WON / LOST con el tipo
+
+Estadísticas globales al pie:
+- Por tipo de apuesta: total apostado, % acierto, últimas 10
+- Por equipo: total apostado, % acierto (top 10)
+- Asesor de umbral (como BetProject): "bien calibrado", "considera subirlo", etc.
+
+#### `/stats` — Estadísticas por equipo
+Vista detallada de un equipo: historial de partidos con sus apuestas + stats de temporada.
+
+---
+
+## Fuera de scope — Fase 2
+
+- Soporte multi-liga activo (el diseño lo permite, pero solo LaLiga por ahora)
+- Persistencia de stats históricas entre temporadas (definir en Fase 3)

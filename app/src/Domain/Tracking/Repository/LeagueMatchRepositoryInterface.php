@@ -15,4 +15,10 @@ interface LeagueMatchRepositoryInterface
 
     /** @return LeagueMatch[] */
     public function findPendingByCompetition(Competition $competition): array;
+
+    /** @return LeagueMatch[] */
+    public function findFinishedByCompetition(Competition $competition): array;
+
+    /** @return LeagueMatch[] */
+    public function findScheduledByCompetition(Competition $competition): array;
 }

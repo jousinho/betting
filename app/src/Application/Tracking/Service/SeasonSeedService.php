@@ -106,6 +106,7 @@ class SeasonSeedService
     private function seedNonLeagueMatches(Competition $competition, array $teams): void
     {
         foreach ($teams as $team) {
+            sleep(7); // football-data.org free tier: 10 req/min
             $apiMatches = $this->provider->fetchNonLeagueMatches($team->externalId(), $competition->code());
 
             foreach ($apiMatches as $apiMatch) {
