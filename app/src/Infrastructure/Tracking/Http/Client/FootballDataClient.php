@@ -5,30 +5,80 @@ declare(strict_types=1);
 namespace App\Infrastructure\Tracking\Http\Client;
 
 use App\Domain\Tracking\Repository\FootballDataProviderInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class FootballDataClient implements FootballDataProviderInterface
 {
-    public function __construct(private readonly string $apiKey)
-    {
-    }
+    private const BASE_URL = 'https://api.football-data.org/v4';
+
+    public function __construct(
+        private readonly HttpClientInterface $httpClient,
+        private readonly string $apiKey,
+    ) {}
 
     public function fetchTeams(string $competitionCode): array
     {
-        throw new \LogicException('Not implemented yet.');
+        $data = $this->get(sprintf('/competitions/%s/teams', $competitionCode));
+
+        return array_map(fn(array $team) => [
+            'id'   => $team['id'],
+            'name' => $team['name'],
+        ], $data['teams'] ?? []);
     }
 
     public function fetchLeagueMatches(string $competitionCode): array
     {
-        throw new \LogicException('Not implemented yet.');
+        $data = $this->get(sprintf('/competitions/%s/matches', $competitionCode));
+
+        return array_map(fn(array $match) => [
+            'id'          => $match['id'],
+            'matchday'    => $match['matchday'],
+            'playedAt'    => $match['utcDate'],
+            'status'      => $match['status'],
+            'homeTeamId'  => $match['homeTeam']['id'],
+            'awayTeamId'  => $match['awayTeam']['id'],
+            'homeGoalsFt' => $match['score']['fullTime']['home'] ?? null,
+            'awayGoalsFt' => $match['score']['fullTime']['away'] ?? null,
+            'homeGoalsHt' => $match['score']['halfTime']['home'] ?? null,
+            'awayGoalsHt' => $match['score']['halfTime']['away'] ?? null,
+        ], $data['matches'] ?? []);
     }
 
-    public function fetchNonLeagueMatches(int $teamExternalId): array
+    public function fetchNonLeagueMatches(int $teamExternalId, string $leagueCompetitionCode): array
     {
-        throw new \LogicException('Not implemented yet.');
+        $data = $this->get(sprintf('/teams/%d/matches', $teamExternalId));
+
+        $matches = array_filter(
+            $data['matches'] ?? [],
+            fn(array $m) => ($m['competition']['code'] ?? '') !== $leagueCompetitionCode,
+        );
+
+        return array_values(array_map(fn(array $match) => [
+            'id'              => $match['id'],
+            'playedAt'        => $match['utcDate'],
+            'status'          => $match['status'],
+            'competitionName' => $match['competition']['name'],
+        ], $matches));
     }
 
     public function fetchLeagueMatchResult(int $matchExternalId): array
     {
-        throw new \LogicException('Not implemented yet.');
+        $data = $this->get(sprintf('/matches/%d', $matchExternalId));
+
+        return [
+            'homeGoalsFt' => $data['score']['fullTime']['home'],
+            'awayGoalsFt' => $data['score']['fullTime']['away'],
+            'homeGoalsHt' => $data['score']['halfTime']['home'],
+            'awayGoalsHt' => $data['score']['halfTime']['away'],
+        ];
+    }
+
+    private function get(string $path): array
+    {
+        $response = $this->httpClient->request('GET', self::BASE_URL . $path, [
+            'headers' => ['X-Auth-Token' => $this->apiKey],
+        ]);
+
+        return $response->toArray();
     }
 }

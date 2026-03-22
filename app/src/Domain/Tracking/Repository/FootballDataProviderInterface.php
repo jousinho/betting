@@ -13,7 +13,7 @@ interface FootballDataProviderInterface
     public function fetchLeagueMatches(string $competitionCode): array;
 
     /** @return array<int, array{id: int, playedAt: string, status: string, competitionName: string}> */
-    public function fetchNonLeagueMatches(int $teamExternalId): array;
+    public function fetchNonLeagueMatches(int $teamExternalId, string $leagueCompetitionCode): array;
 
     /** @return array{homeGoalsFt: int, awayGoalsFt: int, homeGoalsHt: int, awayGoalsHt: int} */
     public function fetchLeagueMatchResult(int $matchExternalId): array;
