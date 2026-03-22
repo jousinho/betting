@@ -57,19 +57,19 @@ class SyncServiceTest extends IntegrationTestCase
 
     public function test_syncing__when_no_pending_matches__should_not_call_api(): void
     {
-        $this->provider->expects($this->never())->method('fetchLeagueMatchResult');
+        $this->provider->expects($this->never())->method('fetchLeagueMatches');
 
         $this->syncService->sync($this->competition);
     }
 
     public function test_syncing__when_league_match_is_pending__should_update_scores_and_set_finished(): void
     {
-        $match = $this->createPastLeagueMatch(1001);
+        $this->createPastLeagueMatch(1001);
 
         $this->provider->expects($this->once())
-            ->method('fetchLeagueMatchResult')
-            ->with(1001)
-            ->willReturn(['homeGoalsFt' => 2, 'awayGoalsFt' => 1, 'homeGoalsHt' => 1, 'awayGoalsHt' => 0]);
+            ->method('fetchLeagueMatches')
+            ->with('PD')
+            ->willReturn([$this->matchResult(1001, 2, 1, 1, 0)]);
 
         $this->syncService->sync($this->competition);
         $this->entityManager->clear();
@@ -87,7 +87,7 @@ class SyncServiceTest extends IntegrationTestCase
         $nlMatch = NonLeagueMatch::create(9001, $this->homeTeam, new \DateTimeImmutable('yesterday'), 'Copa del Rey');
         $this->nonLeagueMatchRepository->save($nlMatch);
 
-        $this->provider->expects($this->never())->method('fetchLeagueMatchResult');
+        $this->provider->expects($this->never())->method('fetchLeagueMatches');
 
         $this->syncService->sync($this->competition);
         $this->entityManager->clear();
@@ -101,9 +101,12 @@ class SyncServiceTest extends IntegrationTestCase
         $this->createPastLeagueMatch(1001);
         $this->createPastLeagueMatch(1002, homeId: 81, awayId: 86);
 
-        $this->provider->expects($this->exactly(2))
-            ->method('fetchLeagueMatchResult')
-            ->willReturn(['homeGoalsFt' => 1, 'awayGoalsFt' => 0, 'homeGoalsHt' => 1, 'awayGoalsHt' => 0]);
+        $this->provider->expects($this->once())
+            ->method('fetchLeagueMatches')
+            ->willReturn([
+                $this->matchResult(1001, 1, 0, 1, 0),
+                $this->matchResult(1002, 0, 1, 0, 0),
+            ]);
 
         $this->syncService->sync($this->competition);
         $this->entityManager->clear();
@@ -120,14 +123,14 @@ class SyncServiceTest extends IntegrationTestCase
         $syncState->markSynced(new \DateTimeImmutable());
         $this->syncStateRepository->save($syncState);
 
-        $this->provider->expects($this->never())->method('fetchLeagueMatchResult');
+        $this->provider->expects($this->never())->method('fetchLeagueMatches');
 
         $this->syncService->sync($this->competition);
     }
 
     public function test_syncing__when_never_synced__should_sync_and_save_sync_state(): void
     {
-        $this->provider->expects($this->never())->method('fetchLeagueMatchResult');
+        $this->provider->expects($this->never())->method('fetchLeagueMatches');
 
         $this->syncService->sync($this->competition);
         $this->entityManager->clear();
@@ -140,7 +143,7 @@ class SyncServiceTest extends IntegrationTestCase
 
     public function test_syncing__when_last_sync_was_yesterday__should_sync_and_update_sync_state(): void
     {
-        $this->provider->expects($this->never())->method('fetchLeagueMatchResult');
+        $this->provider->expects($this->never())->method('fetchLeagueMatches');
 
         $syncState = SyncState::create($this->competition);
         $syncState->markSynced(new \DateTimeImmutable('yesterday'));
@@ -169,5 +172,21 @@ class SyncServiceTest extends IntegrationTestCase
         $this->leagueMatchRepository->save($match);
 
         return $match;
+    }
+
+    private function matchResult(int $id, int $hFt, int $aFt, int $hHt, int $aHt): array
+    {
+        return [
+            'id'          => $id,
+            'matchday'    => 1,
+            'playedAt'    => 'yesterday',
+            'status'      => 'FINISHED',
+            'homeTeamId'  => 86,
+            'awayTeamId'  => 81,
+            'homeGoalsFt' => $hFt,
+            'awayGoalsFt' => $aFt,
+            'homeGoalsHt' => $hHt,
+            'awayGoalsHt' => $aHt,
+        ];
     }
 }

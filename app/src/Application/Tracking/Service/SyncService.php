@@ -41,13 +41,31 @@ class SyncService
 
     private function syncLeagueMatches(Competition $competition): void
     {
-        foreach ($this->leagueMatchRepository->findPendingByCompetition($competition) as $match) {
-            $result = $this->provider->fetchLeagueMatchResult($match->externalId());
+        $pendingMatches = $this->leagueMatchRepository->findPendingByCompetition($competition);
+
+        if (empty($pendingMatches)) {
+            return;
+        }
+
+        $allResults = $this->provider->fetchLeagueMatches($competition->code());
+
+        $resultsByExternalId = [];
+        foreach ($allResults as $result) {
+            $resultsByExternalId[$result['id']] = $result;
+        }
+
+        foreach ($pendingMatches as $match) {
+            $result = $resultsByExternalId[$match->externalId()] ?? null;
+
+            if ($result === null || $result['homeGoalsFt'] === null) {
+                continue;
+            }
+
             $match->finish(
                 $result['homeGoalsFt'],
                 $result['awayGoalsFt'],
-                $result['homeGoalsHt'],
-                $result['awayGoalsHt'],
+                $result['homeGoalsHt'] ?? 0,
+                $result['awayGoalsHt'] ?? 0,
             );
             $this->leagueMatchRepository->save($match);
         }
