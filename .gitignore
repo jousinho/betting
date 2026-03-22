@@ -1,0 +1,6 @@
+.env.local
+app/.env.local
+app/vendor/
+app/var/
+app/.phpunit.cache/
+app/symfony.lock
