@@ -16,6 +16,16 @@ class FootballDataClient implements FootballDataProviderInterface
         private readonly string $apiKey,
     ) {}
 
+    public function fetchCompetition(string $competitionCode): array
+    {
+        $data = $this->get(sprintf('/competitions/%s', $competitionCode));
+
+        return [
+            'code' => $data['code'],
+            'name' => $data['name'],
+        ];
+    }
+
     public function fetchTeams(string $competitionCode): array
     {
         $data = $this->get(sprintf('/competitions/%s/teams', $competitionCode));

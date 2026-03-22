@@ -21,6 +21,22 @@ class FootballDataClientTest extends TestCase
         $this->client = new FootballDataClient($this->httpClient, 'test-api-key');
     }
 
+    public function test_fetching_competition__should_return_code_and_name(): void
+    {
+        $this->httpClient->expects($this->once())
+            ->method('request')
+            ->with('GET', 'https://api.football-data.org/v4/competitions/PD', $this->anything())
+            ->willReturn($this->makeResponse([
+                'code' => 'PD',
+                'name' => 'Primera División',
+            ]));
+
+        $competition = $this->client->fetchCompetition('PD');
+
+        $this->assertSame('PD', $competition['code']);
+        $this->assertSame('Primera División', $competition['name']);
+    }
+
     public function test_fetching_teams__should_map_api_response_to_array_with_external_id_and_name(): void
     {
         $this->httpClient->expects($this->once())
