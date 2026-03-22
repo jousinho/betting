@@ -15,10 +15,10 @@ class Over05HalfTimeCriterion implements BetCriterionInterface
 
     public function evaluate(TeamMatchStats $homeStats, TeamMatchStats $awayStats): ?string
     {
-        $homeTriggered = $homeStats->matchesPlayedHome >= 5
+        $homeTriggered = $homeStats->matchesPlayedHome >= 3
             && $homeStats->over05HtHome / $homeStats->matchesPlayedHome >= 0.70;
 
-        $awayTriggered = $awayStats->matchesPlayedAway >= 5
+        $awayTriggered = $awayStats->matchesPlayedAway >= 3
             && $awayStats->over05HtAway / $awayStats->matchesPlayedAway >= 0.70;
 
         if ($homeTriggered && $awayTriggered) {

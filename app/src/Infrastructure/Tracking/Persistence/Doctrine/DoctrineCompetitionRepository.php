@@ -28,4 +28,9 @@ class DoctrineCompetitionRepository implements CompetitionRepositoryInterface
     {
         return $this->repository->findOneBy(['code' => $code]);
     }
+
+    public function findAll(): array
+    {
+        return $this->repository->findAll();
+    }
 }

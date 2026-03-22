@@ -6,30 +6,93 @@
 {% block content %}
 <h1>Estadísticas de temporada</h1>
 
-{% if data is null %}
+{# ── Season tabs ──────────────────────────────────────────── #}
+{% set hasAny = data is not null or historicalList is not empty %}
+
+{% if not hasAny %}
     <p class="empty">No hay datos todavía.</p>
 {% else %}
 
+{# Determine active tab: prefer current if it has data, else first historical #}
+{% set activeTab = (data is not null) ? 'current' : historicalList[0].season %}
+{% if app.request is defined %}
+    {# Could read query param here if needed #}
+{% endif %}
+
+{# Tab bar #}
+<div class="tab-bar" style="display:flex; gap:0.5rem; margin-bottom:1.5rem; border-bottom:1px solid #334155; padding-bottom:0;">
+    {% if data is not null %}
+        <a href="?tab=current"
+           class="tab-link {% if activeTab == 'current' %}tab-active{% endif %}"
+           data-tab="current">Temporada actual</a>
+    {% endif %}
+    {% for seasonStat in historicalList %}
+        <a href="?tab={{ seasonStat.season|url_encode }}"
+           class="tab-link {% if activeTab == seasonStat.season %}tab-active{% endif %}"
+           data-tab="{{ seasonStat.season }}">{{ seasonStat.season }}</a>
+    {% endfor %}
+</div>
+
+<style>
+.tab-link { padding:0.5rem 1rem; color:#94a3b8; font-size:0.9rem; border-bottom:2px solid transparent; margin-bottom:-1px; text-decoration:none; }
+.tab-link:hover { color:#f1f5f9; text-decoration:none; }
+.tab-active { color:#38bdf8; border-bottom-color:#38bdf8; }
+.tab-panel { display:none; }
+.tab-panel.tab-visible { display:block; }
+</style>
+
+{# Current season panel #}
+{% if data is not null %}
+<div class="tab-panel {% if activeTab == 'current' %}tab-visible{% endif %}" data-panel="current">
+    {{ _self.stats_panel(data) }}
+</div>
+{% endif %}
+
+{# Historical season panels #}
+{% for seasonStat in historicalList %}
+<div class="tab-panel {% if activeTab == seasonStat.season %}tab-visible{% endif %}" data-panel="{{ seasonStat.season }}">
+    <p style="color:#64748b; font-size:0.8rem; margin-bottom:1rem;">Temporada archivada · {{ seasonStat.competitionName }}</p>
+    {{ _self.stats_panel(seasonStat.stats) }}
+</div>
+{% endfor %}
+
+<script>
+document.querySelectorAll('.tab-link').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        var tab = this.dataset.tab;
+        document.querySelectorAll('.tab-link').forEach(function(l) { l.classList.remove('tab-active'); });
+        document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('tab-visible'); });
+        this.classList.add('tab-active');
+        document.querySelector('[data-panel="' + tab + '"]').classList.add('tab-visible');
+    });
+});
+</script>
+
+{% endif %}
+{% endblock %}
+
+{% macro stats_panel(d) %}
 {# ── Resumen ─────────────────────────────────────────────── #}
 <div class="stat-grid" style="margin-bottom:2rem;">
     <div class="stat-card">
         <div class="label">Apuestas totales</div>
-        <div class="value">{{ data.total }}</div>
+        <div class="value">{{ d.total }}</div>
     </div>
     <div class="stat-card">
         <div class="label">Ganadas</div>
-        <div class="value" style="color:#4ade80">{{ data.won }}</div>
+        <div class="value" style="color:#4ade80">{{ d.won }}</div>
     </div>
     <div class="stat-card">
         <div class="label">Perdidas</div>
-        <div class="value" style="color:#f87171">{{ data.lost }}</div>
+        <div class="value" style="color:#f87171">{{ d.lost }}</div>
     </div>
     <div class="stat-card">
         <div class="label">% Acierto global</div>
-        <div class="value" style="color:{% if data.rate >= 60 %}#4ade80{% elseif data.rate >= 50 %}#eab308{% else %}#f87171{% endif %}">{{ data.rate }}%</div>
+        <div class="value" style="color:{% if d.rate >= 60 %}#4ade80{% elseif d.rate >= 50 %}#eab308{% else %}#f87171{% endif %}">{{ d.rate }}%</div>
         <div class="sub">
             <div class="bar-track" style="margin-top:6px">
-                <div class="bar-fill {% if data.rate >= 60 %}bar-fill-green{% elseif data.rate >= 50 %}bar-fill-yellow{% else %}bar-fill-red{% endif %}" style="width:{{ data.rate }}%"></div>
+                <div class="bar-fill {% if d.rate >= 60 %}bar-fill-green{% elseif d.rate >= 50 %}bar-fill-yellow{% else %}bar-fill-red{% endif %}" style="width:{{ d.rate }}%"></div>
             </div>
         </div>
     </div>
@@ -50,7 +113,7 @@
                 </tr>
             </thead>
             <tbody>
-            {% for type, g in data.byType %}
+            {% for type, g in d.byType %}
                 <tr>
                     <td>{{ type|replace({'_': ' '})|upper }}</td>
                     <td style="text-align:right">
@@ -80,7 +143,7 @@
                 </tr>
             </thead>
             <tbody>
-            {% for persp, g in data.byPerspective %}
+            {% for persp, g in d.byPerspective %}
                 <tr>
                     <td>
                         {% if persp == 'home' %}🏠 Local
@@ -111,7 +174,7 @@
                 </tr>
             </thead>
             <tbody>
-            {% for teamName, g in data.topTeams %}
+            {% for teamName, g in d.topTeams %}
                 <tr>
                     <td style="font-size:0.82rem">{{ teamName }}</td>
                     <td style="text-align:right">
@@ -133,7 +196,7 @@
 {# ── Por jornada (gráfico) ───────────────────────────────── #}
 <h2>% Acierto por jornada</h2>
 <div class="section-card" style="padding:1rem 1.25rem">
-    {% for matchday, g in data.byMatchday %}
+    {% for matchday, g in d.byMatchday %}
         <div class="matchday-bar">
             <span class="jornada">J{{ matchday }}</span>
             <span class="bar-track">
@@ -144,6 +207,4 @@
         </div>
     {% endfor %}
 </div>
-
-{% endif %}
-{% endblock %}
+{% endmacro %}

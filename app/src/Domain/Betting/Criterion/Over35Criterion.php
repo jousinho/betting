@@ -15,10 +15,10 @@ class Over35Criterion implements BetCriterionInterface
 
     public function evaluate(TeamMatchStats $homeStats, TeamMatchStats $awayStats): ?string
     {
-        $homeTriggered = $homeStats->matchesPlayedHome >= 5
+        $homeTriggered = $homeStats->matchesPlayedHome >= 3
             && $homeStats->over35Home / $homeStats->matchesPlayedHome >= 0.50;
 
-        $awayTriggered = $awayStats->matchesPlayedAway >= 5
+        $awayTriggered = $awayStats->matchesPlayedAway >= 3
             && $awayStats->over35Away / $awayStats->matchesPlayedAway >= 0.50;
 
         if ($homeTriggered && $awayTriggered) {

@@ -54,6 +54,26 @@ class FootballDataClient implements FootballDataProviderInterface
         ], $data['matches'] ?? []);
     }
 
+    public function fetchLeagueMatchesBySeason(string $competitionCode, int $season): array
+    {
+        $data = $this->get(sprintf('/competitions/%s/matches?season=%d', $competitionCode, $season));
+
+        return array_map(fn(array $match) => [
+            'id'           => $match['id'],
+            'matchday'     => $match['matchday'],
+            'playedAt'     => $match['utcDate'],
+            'status'       => $match['status'],
+            'homeTeamId'   => $match['homeTeam']['id'],
+            'homeTeamName' => $match['homeTeam']['name'],
+            'awayTeamId'   => $match['awayTeam']['id'],
+            'awayTeamName' => $match['awayTeam']['name'],
+            'homeGoalsFt'  => $match['score']['fullTime']['home'] ?? null,
+            'awayGoalsFt'  => $match['score']['fullTime']['away'] ?? null,
+            'homeGoalsHt'  => $match['score']['halfTime']['home'] ?? null,
+            'awayGoalsHt'  => $match['score']['halfTime']['away'] ?? null,
+        ], $data['matches'] ?? []);
+    }
+
     public function fetchNonLeagueMatches(int $teamExternalId, string $leagueCompetitionCode): array
     {
         $data = $this->get(sprintf('/teams/%d/matches', $teamExternalId));

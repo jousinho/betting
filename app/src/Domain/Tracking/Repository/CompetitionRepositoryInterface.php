@@ -11,4 +11,7 @@ interface CompetitionRepositoryInterface
     public function save(Competition $competition): void;
 
     public function findByCode(string $code): ?Competition;
+
+    /** @return Competition[] */
+    public function findAll(): array;
 }

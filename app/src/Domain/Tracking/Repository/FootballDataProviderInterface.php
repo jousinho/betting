@@ -15,6 +15,9 @@ interface FootballDataProviderInterface
     /** @return array<int, array{id: int, matchday: int, playedAt: string, status: string, homeTeamId: int, awayTeamId: int, homeGoalsFt: int|null, awayGoalsFt: int|null, homeGoalsHt: int|null, awayGoalsHt: int|null}> */
     public function fetchLeagueMatches(string $competitionCode): array;
 
+    /** @return array<int, array{id: int, matchday: int, playedAt: string, status: string, homeTeamId: int, homeTeamName: string, awayTeamId: int, awayTeamName: string, homeGoalsFt: int|null, awayGoalsFt: int|null, homeGoalsHt: int|null, awayGoalsHt: int|null}> */
+    public function fetchLeagueMatchesBySeason(string $competitionCode, int $season): array;
+
     /** @return array<int, array{id: int, playedAt: string, status: string, competitionName: string}> */
     public function fetchNonLeagueMatches(int $teamExternalId, string $leagueCompetitionCode): array;
 

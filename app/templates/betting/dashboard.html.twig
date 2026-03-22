@@ -6,6 +6,105 @@
 {% block content %}
 <h1>Próximos partidos</h1>
 
+{% if summary is not null %}
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-bottom:2rem;">
+
+    {# ── Próxima jornada ──────────────────────────── #}
+    <div class="section-card" style="padding:1rem 1.25rem;">
+        <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.08em; color:#64748b; margin-bottom:0.75rem;">
+            Jornada {{ summary.nextMatchday }}
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr auto; gap:1rem;">
+
+            {# Quedan #}
+            <div>
+                <div style="display:flex; align-items:baseline; gap:0.5rem; margin-bottom:0.75rem;">
+                    <span style="font-size:0.75rem; color:#64748b;">Quedan</span>
+                    <span style="font-size:1.4rem; font-weight:700; color:#f1f5f9;">{{ summary.totalMatches }}</span>
+                    <span style="font-size:0.8rem; color:#64748b;">partidos · {{ summary.totalBets }} apuestas</span>
+                </div>
+                <div style="display:flex; gap:1rem; margin-bottom:0.75rem;">
+                    <div style="text-align:center;">
+                        <div style="font-size:1rem; font-weight:700; color:#f1f5f9;">{{ summary.perspectiveCounts.home }}</div>
+                        <div style="font-size:0.68rem; color:#64748b;">🏠 Local</div>
+                    </div>
+                    <div style="width:1px; background:#334155;"></div>
+                    <div style="text-align:center;">
+                        <div style="font-size:1rem; font-weight:700; color:#f1f5f9;">{{ summary.perspectiveCounts.both }}</div>
+                        <div style="font-size:0.68rem; color:#64748b;">⇄ Ambos</div>
+                    </div>
+                    <div style="width:1px; background:#334155;"></div>
+                    <div style="text-align:center;">
+                        <div style="font-size:1rem; font-weight:700; color:#f1f5f9;">{{ summary.perspectiveCounts.away }}</div>
+                        <div style="font-size:0.68rem; color:#64748b;">✈️ Visit.</div>
+                    </div>
+                </div>
+                {% if summary.topBetTypes is not empty %}
+                <div style="display:flex; flex-wrap:wrap; gap:0.3rem;">
+                    {% for type, count in summary.topBetTypes %}
+                        <span class="badge badge-bet" style="font-size:0.7rem;">{{ type|replace({'_': ' '})|upper }} <span style="color:#64748b;">×{{ count }}</span></span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            {# Ya jugados #}
+            {% if summary.curMdTotal > 0 %}
+            <div style="border-left:1px solid #334155; padding-left:1rem; min-width:90px;">
+                <div style="font-size:0.68rem; color:#64748b; margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.06em;">Ya jugados</div>
+                <div style="font-size:1.4rem; font-weight:700; color:#f1f5f9; margin-bottom:0.3rem;">{{ summary.curMdTotal }}</div>
+                <div style="display:flex; flex-direction:column; gap:0.2rem;">
+                    <div style="font-size:0.78rem; color:#4ade80;">✓ {{ summary.curMdWon }} gan.</div>
+                    <div style="font-size:0.78rem; color:#f87171;">✗ {{ summary.curMdLost }} perd.</div>
+                    {% if summary.curMdTotal > 0 %}
+                    <div style="font-size:0.72rem; color:#64748b; margin-top:0.1rem;">
+                        {{ (summary.curMdWon / summary.curMdTotal * 100)|round }}% acierto
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    {# ── Temporada en curso ───────────────────────── #}
+    <div class="section-card" style="padding:1rem 1.25rem;">
+        <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.08em; color:#64748b; margin-bottom:0.6rem;">
+            Temporada actual
+        </div>
+        <div style="display:flex; align-items:baseline; gap:0.75rem; margin-bottom:0.5rem;">
+            <span style="font-size:1.5rem; font-weight:700; color:{% if summary.rate >= 60 %}#4ade80{% elseif summary.rate >= 50 %}#eab308{% else %}#f87171{% endif %};">{{ summary.rate }}%</span>
+            <span style="color:#94a3b8; font-size:0.85rem;">{{ summary.won }}G / {{ summary.totalSettled - summary.won }}P · {{ summary.totalSettled }} liq.</span>
+        </div>
+        <div class="bar-track" style="margin-bottom:1rem;">
+            <div class="bar-fill {% if summary.rate >= 60 %}bar-fill-green{% elseif summary.rate >= 50 %}bar-fill-yellow{% else %}bar-fill-red{% endif %}" style="width:{{ summary.rate }}%;"></div>
+        </div>
+        <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:#64748b; margin-bottom:0.5rem;">Últimas jornadas</div>
+        <div style="display:flex; gap:0.4rem; align-items:flex-end; height:32px;">
+            {% for md, g in summary.chartMatchdays %}
+                {% set isCurrent = g.current is defined and g.current %}
+                {% set pct = g.total > 0 ? (g.won / g.total * 100)|round : 0 %}
+                {% set barH = g.total > 0 ? (pct * 30 / 100)|round : 2 %}
+                {% if isCurrent %}
+                    {% set tooltip = summary.curMdMatchesPlayed ~ '/' ~ (summary.curMdMatchesPlayed + summary.totalMatches) ~ ' partidos · ' ~ g.won ~ ' gan. / ' ~ (g.total - g.won) ~ ' perd.' %}
+                {% else %}
+                    {% set tooltip = g.won ~ ' gan. / ' ~ (g.total - g.won) ~ ' perd. · ' ~ pct ~ '%' %}
+                {% endif %}
+                <div title="{{ tooltip }}" style="flex:1; height:{{ barH > 0 ? barH : 2 }}px; border-radius:2px 2px 0 0; background:{% if isCurrent %}#475569{% elseif pct >= 60 %}#22c55e{% elseif pct >= 50 %}#eab308{% else %}#ef4444{% endif %}; cursor:help;"></div>
+            {% endfor %}
+        </div>
+        <div style="display:flex; gap:0.4rem; margin-top:3px;">
+            {% for md, g in summary.chartMatchdays %}
+                {% set isCurrent = g.current is defined and g.current %}
+                <div style="flex:1; text-align:center; font-size:0.62rem; color:{% if isCurrent %}#64748b{% else %}#475569{% endif %};">J{{ md }}</div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+{% endif %}
+
 {% if byMatchday is empty %}
     <p class="empty">No hay partidos programados.</p>
 {% else %}

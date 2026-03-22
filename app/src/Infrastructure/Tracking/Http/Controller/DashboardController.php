@@ -54,9 +54,7 @@ HTML;
     #[Route('/sync', name: 'sync', methods: ['GET'])]
     public function sync(): JsonResponse
     {
-        $competition = $this->competitionRepository->findByCode('PD');
-
-        if ($competition !== null) {
+        foreach ($this->competitionRepository->findAll() as $competition) {
             $this->syncService->sync($competition);
         }
 
