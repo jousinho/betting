@@ -309,7 +309,7 @@ Uso: `php bin/console tracking:seed-season PD`
 
 ---
 
-## STEP 8 — Controller + loading
+## STEP 8 — Controller + loading ✅
 
 ```
 src/Infrastructure/Tracking/Http/Controller/DashboardController.php
@@ -318,15 +318,159 @@ src/Infrastructure/Tracking/Http/Controller/DashboardController.php
     → GET /dashboard → 200 OK placeholder (vistas en fase de apuestas)
 ```
 
-El spinner es HTML+CSS inline en el controller, sin Twig.
+---
+
+## STEP 9 — TeamMatchStats + criterios de apuesta + tests unitarios
+
+> Bounded context: `Betting` — lógica de dominio pura, sin persistencia.
+
+```
+src/Domain/Betting/ValueObject/TeamMatchStats.php
+src/Domain/Betting/Criterion/BetCriterionInterface.php
+src/Domain/Betting/Criterion/HomeWinCriterion.php
+src/Domain/Betting/Criterion/AwayWinCriterion.php
+src/Domain/Betting/Criterion/DoubleChanceCriterion.php
+src/Domain/Betting/Criterion/BttsCriterion.php
+src/Domain/Betting/Criterion/CleanSheetHomeCriterion.php
+src/Domain/Betting/Criterion/Over05HalfTimeCriterion.php
+src/Domain/Betting/Criterion/Over15Criterion.php
+src/Domain/Betting/Criterion/Over25Criterion.php
+src/Domain/Betting/Criterion/Over35Criterion.php
+src/Domain/Betting/Criterion/Under25Criterion.php
+src/Domain/Betting/Criterion/WinBothHalvesCriterion.php
+src/Domain/Betting/Service/TeamStatsCalculator.php
+```
+
+`TeamMatchStats` es un Value Object inmutable con todos los contadores de stats.
+`TeamStatsCalculator` recibe `LeagueMatchRepositoryInterface` y calcula los stats de un
+equipo para una competición a partir de partidos FINISHED.
+
+#### Tests unitarios
+```
+tests/Unit/Domain/Betting/Criterion/HomeWinCriterionTest.php
+tests/Unit/Domain/Betting/Criterion/AwayWinCriterionTest.php
+tests/Unit/Domain/Betting/Criterion/DoubleChanceCriterionTest.php
+tests/Unit/Domain/Betting/Criterion/BttsCriterionTest.php
+tests/Unit/Domain/Betting/Criterion/CleanSheetHomeCriterionTest.php
+tests/Unit/Domain/Betting/Criterion/Over05HalfTimeCriterionTest.php
+tests/Unit/Domain/Betting/Criterion/Over15CriterionTest.php
+tests/Unit/Domain/Betting/Criterion/Over25CriterionTest.php
+tests/Unit/Domain/Betting/Criterion/Over35CriterionTest.php
+tests/Unit/Domain/Betting/Criterion/Under25CriterionTest.php
+tests/Unit/Domain/Betting/Criterion/WinBothHalvesCriterionTest.php
+tests/Unit/Domain/Betting/Service/TeamStatsCalculatorTest.php
+```
+
+Cada criterio tiene 3 casos: `should_return_true_when_met`, `should_return_false_when_not_met`,
+`should_return_false_when_wrong_perspective`.
+
+`TeamStatsCalculatorTest`:
+- `test_calculating_stats__should_count_home_and_away_matches_separately`
+- `test_calculating_stats__should_compute_form_last5_home_as_string`
+- `test_calculating_stats__should_compute_over25_counters`
+
+---
+
+## STEP 10 — Entidad Bet + repositorio + migración + tests de integración
+
+```
+src/Domain/Betting/Entity/Bet.php
+src/Domain/Betting/Repository/BetRepositoryInterface.php
+    → save(Bet): void
+    → findByMatch(LeagueMatch): Bet[]
+    → findPendingByCompetition(Competition): Bet[]
+    → findSettledByCompetition(Competition): Bet[]
+    → existsForMatchAndType(LeagueMatch, string $betType): bool
+src/Infrastructure/Betting/Persistence/Doctrine/DoctrineBetRepository.php
+src/Infrastructure/Shared/Persistence/Doctrine/Migrations/   (generada)
+```
+
+`Bet::create(LeagueMatch $match, string $betType, string $perspective, bool $skipped = false): self`
+`Bet::settle(\DateTimeImmutable $at, bool $won): void`
 
 #### Tests de integración
 ```
-tests/Integration/Infrastructure/Tracking/DashboardControllerTest.php
-tests/Integration/WebIntegrationTestCase.php   (base con KernelBrowser)
+tests/Integration/Infrastructure/Betting/DoctrineBetRepositoryTest.php
 ```
 
 Casos:
-- `test_visiting_root__should_return_html_with_spinner`
-- `test_sync_endpoint__when_not_synced_today__should_sync_and_return_ok`
-- `test_sync_endpoint__when_already_synced_today__should_skip_and_return_ok`
+- `test_saving_bet__should_be_retrievable_by_match`
+- `test_finding_pending__should_only_return_pending_bets`
+- `test_finding_settled__should_only_return_won_and_lost`
+- `test_exists_for_match_and_type__when_exists__should_return_true`
+- `test_exists_for_match_and_type__when_not_exists__should_return_false`
+
+---
+
+## STEP 11 — BetGeneratorService + BetSettlementService + tests de integración
+
+```
+src/Application/Betting/Service/BetGeneratorService.php
+src/Application/Betting/Service/BetSettlementService.php
+```
+
+#### `BetGeneratorService::generate(Competition $competition): void`
+1. Obtener todos los `LeagueMatch` SCHEDULED de la competición
+2. Para cada partido:
+   a. Calcular `TeamMatchStats` de homeTeam y awayTeam
+   b. Evaluar cada criterio (`perspective = home` → pasa homeStats+awayStats, `perspective = away` → al revés)
+   c. Detectar conflictos: si home genera tipo X y away genera tipo Y y son contradictorios, marcar bet de away como `skipped = true`
+   d. Persistir cada apuesta si no existe ya (`existsForMatchAndType`)
+
+#### `BetSettlementService::settleAll(Competition $competition): void`
+1. Buscar bets PENDING cuyo `LeagueMatch` está FINISHED
+2. Para cada bet, evaluar outcome según tipo y marcador
+3. `bet->settle($now, $won)`
+
+#### Tests de integración (API mockeada, BD real)
+```
+tests/Integration/Infrastructure/Betting/BetGeneratorServiceTest.php
+tests/Integration/Infrastructure/Betting/BetSettlementServiceTest.php
+```
+
+Casos `BetGeneratorServiceTest`:
+- `test_generating_bets__when_criterion_met__should_create_pending_bet`
+- `test_generating_bets__when_conflicting_home_and_away__should_skip_away_bet`
+- `test_generating_bets__when_called_twice__should_not_duplicate_bets`
+- `test_generating_bets__when_criterion_not_met__should_not_create_bet`
+
+Casos `BetSettlementServiceTest`:
+- `test_settling__when_over25_wins__should_mark_won`
+- `test_settling__when_over25_loses__should_mark_lost`
+- `test_settling__when_home_win_and_home_wins__should_mark_won`
+- `test_settling__when_skipped_bet__should_still_settle_for_stats`
+
+---
+
+## STEP 12 — Integrar betting en SyncService + SeasonSeedService + Twig
+
+```
+src/Application/Tracking/Service/SyncService.php       (actualizar)
+src/Application/Tracking/Service/SeasonSeedService.php (actualizar)
+src/Infrastructure/Betting/Http/Controller/BettingController.php
+    → GET /dashboard   → listado de próximos partidos con apuestas activas
+    → GET /bets/history → historial con stats
+    → GET /stats/{teamId} → stats detalladas por equipo
+templates/
+    betting/dashboard.html.twig
+    betting/history.html.twig
+    betting/team_stats.html.twig
+    layout.html.twig
+```
+
+SyncService.sync() añade al final:
+1. `BetSettlementService::settleAll($competition)`
+2. `BetGeneratorService::generate($competition)`
+
+SeasonSeedService.seed() añade al final:
+3. `BetGeneratorService::generate($competition)`
+
+#### Tests funcionales
+```
+tests/Functional/BettingControllerTest.php
+```
+
+Casos:
+- `test_dashboard__should_list_upcoming_matches_with_active_bets`
+- `test_history__should_list_finished_matches_with_outcomes`
+- `test_team_stats__should_show_bet_stats_for_team`

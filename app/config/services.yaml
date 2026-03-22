@@ -43,6 +43,9 @@ services:
         arguments:
             $apiKey: '%env(FOOTBALL_DATA_API_KEY)%'
 
+    App\Domain\Betting\Repository\BetRepositoryInterface:
+        class: App\Infrastructure\Betting\Persistence\Doctrine\DoctrineBetRepository
+
     App\Infrastructure\Tracking\Http\Controller\DashboardController:
         autowire: true
         tags: ['controller.service_arguments']

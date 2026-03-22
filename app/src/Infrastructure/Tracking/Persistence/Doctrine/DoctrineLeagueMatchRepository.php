@@ -44,4 +44,32 @@ class DoctrineLeagueMatchRepository implements LeagueMatchRepositoryInterface
             ->getQuery()
             ->getResult();
     }
+
+    public function findFinishedByCompetition(Competition $competition): array
+    {
+        return $this->entityManager->createQueryBuilder()
+            ->select('m')
+            ->from(LeagueMatch::class, 'm')
+            ->where('m.competition = :competition')
+            ->andWhere('m.status = :status')
+            ->orderBy('m.playedAt', 'DESC')
+            ->setParameter('competition', $competition)
+            ->setParameter('status', LeagueMatch::STATUS_FINISHED)
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findScheduledByCompetition(Competition $competition): array
+    {
+        return $this->entityManager->createQueryBuilder()
+            ->select('m')
+            ->from(LeagueMatch::class, 'm')
+            ->where('m.competition = :competition')
+            ->andWhere('m.status = :status')
+            ->orderBy('m.playedAt', 'ASC')
+            ->setParameter('competition', $competition)
+            ->setParameter('status', LeagueMatch::STATUS_SCHEDULED)
+            ->getQuery()
+            ->getResult();
+    }
 }

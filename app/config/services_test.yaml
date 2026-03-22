@@ -39,6 +39,19 @@ services:
         autowire: true
         public: true
 
+    App\Application\Betting\Service\BetGeneratorService:
+        autowire: true
+        public: true
+
+    App\Application\Betting\Service\BetSettlementService:
+        autowire: true
+        public: true
+
+    App\Domain\Betting\Repository\BetRepositoryInterface:
+        class: App\Infrastructure\Betting\Persistence\Doctrine\DoctrineBetRepository
+        autowire: true
+        public: true
+
     App\Infrastructure\Tracking\Http\Controller\DashboardController:
         autowire: true
         public: true
