@@ -59,6 +59,22 @@ class DoctrineLeagueMatchRepository implements LeagueMatchRepositoryInterface
             ->getResult();
     }
 
+    public function findFinishedByCompetitionBefore(Competition $competition, \DateTimeImmutable $before): array
+    {
+        return $this->entityManager->createQueryBuilder()
+            ->select('m')
+            ->from(LeagueMatch::class, 'm')
+            ->where('m.competition = :competition')
+            ->andWhere('m.status = :status')
+            ->andWhere('m.playedAt < :before')
+            ->orderBy('m.playedAt', 'DESC')
+            ->setParameter('competition', $competition)
+            ->setParameter('status', LeagueMatch::STATUS_FINISHED)
+            ->setParameter('before', $before)
+            ->getQuery()
+            ->getResult();
+    }
+
     public function findScheduledByCompetition(Competition $competition): array
     {
         return $this->entityManager->createQueryBuilder()

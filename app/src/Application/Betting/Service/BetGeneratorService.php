@@ -67,10 +67,21 @@ class BetGeneratorService
         }
     }
 
-    private function generateForMatch(LeagueMatch $match, Competition $competition): void
+    public function generateHistorical(Competition $competition): void
     {
-        $homeStats = $this->statsCalculator->calculate($match->homeTeam(), $competition);
-        $awayStats = $this->statsCalculator->calculate($match->awayTeam(), $competition);
+        $finished = $this->leagueMatchRepository->findFinishedByCompetition($competition);
+
+        usort($finished, fn(LeagueMatch $a, LeagueMatch $b) => $a->playedAt() <=> $b->playedAt());
+
+        foreach ($finished as $match) {
+            $this->generateForMatch($match, $competition, $match->playedAt());
+        }
+    }
+
+    private function generateForMatch(LeagueMatch $match, Competition $competition, ?\DateTimeImmutable $statsAsOf = null): void
+    {
+        $homeStats = $this->statsCalculator->calculate($match->homeTeam(), $competition, $statsAsOf);
+        $awayStats = $this->statsCalculator->calculate($match->awayTeam(), $competition, $statsAsOf);
 
         $homeBetTypes = [];
 

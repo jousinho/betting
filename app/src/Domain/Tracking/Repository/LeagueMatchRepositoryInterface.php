@@ -20,5 +20,8 @@ interface LeagueMatchRepositoryInterface
     public function findFinishedByCompetition(Competition $competition): array;
 
     /** @return LeagueMatch[] */
+    public function findFinishedByCompetitionBefore(Competition $competition, \DateTimeImmutable $before): array;
+
+    /** @return LeagueMatch[] */
     public function findScheduledByCompetition(Competition $competition): array;
 }

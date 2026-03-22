@@ -59,6 +59,17 @@ class DoctrineBetRepository implements BetRepositoryInterface
             ->getResult();
     }
 
+    public function clearByCompetition(Competition $competition): void
+    {
+        $this->entityManager->createQuery(
+            'DELETE FROM App\Domain\Betting\Entity\Bet b
+             WHERE b.leagueMatch IN (
+                 SELECT m FROM App\Domain\Tracking\Entity\LeagueMatch m
+                 WHERE m.competition = :competition
+             )'
+        )->setParameter('competition', $competition)->execute();
+    }
+
     public function existsForMatchAndType(LeagueMatch $match, string $betType): bool
     {
         $count = (int) $this->entityManager->createQueryBuilder()

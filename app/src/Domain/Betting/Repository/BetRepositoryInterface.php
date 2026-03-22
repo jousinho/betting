@@ -22,4 +22,6 @@ interface BetRepositoryInterface
     public function findSettledByCompetition(Competition $competition): array;
 
     public function existsForMatchAndType(LeagueMatch $match, string $betType): bool;
+
+    public function clearByCompetition(Competition $competition): void;
 }
