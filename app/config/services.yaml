@@ -21,3 +21,24 @@ services:
         exclude:
             - '../src/Infrastructure/**/Persistence/Doctrine/Migrations/'
             - '../src/Infrastructure/**/Http/Controller/'
+
+    # Bindings interfaz → implementación Doctrine
+    App\Domain\Tracking\Repository\CompetitionRepositoryInterface:
+        class: App\Infrastructure\Tracking\Persistence\Doctrine\DoctrineCompetitionRepository
+
+    App\Domain\Tracking\Repository\TeamRepositoryInterface:
+        class: App\Infrastructure\Tracking\Persistence\Doctrine\DoctrineTeamRepository
+
+    App\Domain\Tracking\Repository\LeagueMatchRepositoryInterface:
+        class: App\Infrastructure\Tracking\Persistence\Doctrine\DoctrineLeagueMatchRepository
+
+    App\Domain\Tracking\Repository\NonLeagueMatchRepositoryInterface:
+        class: App\Infrastructure\Tracking\Persistence\Doctrine\DoctrineNonLeagueMatchRepository
+
+    App\Domain\Tracking\Repository\SyncStateRepositoryInterface:
+        class: App\Infrastructure\Tracking\Persistence\Doctrine\DoctrineSyncStateRepository
+
+    App\Domain\Tracking\Repository\FootballDataProviderInterface:
+        class: App\Infrastructure\Tracking\Http\Client\FootballDataClient
+        arguments:
+            $apiKey: '%env(FOOTBALL_DATA_API_KEY)%'
