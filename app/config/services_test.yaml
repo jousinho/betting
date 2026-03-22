@@ -38,3 +38,8 @@ services:
     App\Application\Tracking\Service\SyncService:
         autowire: true
         public: true
+
+    App\Infrastructure\Tracking\Http\Controller\DashboardController:
+        autowire: true
+        public: true
+        tags: ['controller.service_arguments']

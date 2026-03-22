@@ -42,3 +42,7 @@ services:
         class: App\Infrastructure\Tracking\Http\Client\FootballDataClient
         arguments:
             $apiKey: '%env(FOOTBALL_DATA_API_KEY)%'
+
+    App\Infrastructure\Tracking\Http\Controller\DashboardController:
+        autowire: true
+        tags: ['controller.service_arguments']
