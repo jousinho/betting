@@ -29,9 +29,10 @@
                         <tr {% if loop.first %}class="match-start"{% endif %}>
                             {% if loop.first %}
                                 <td rowspan="{{ row.bets|length }}">
-                                    <a href="/team/{{ match.homeTeam.externalId }}">{{ match.homeTeam.name }}</a>
+                                    {% set lg = currentLeague is defined ? currentLeague : 'PD' %}
+                                    <a href="/team/{{ match.homeTeam.externalId }}?league={{ lg }}">{{ match.homeTeam.name }}</a>
                                     vs
-                                    <a href="/team/{{ match.awayTeam.externalId }}">{{ match.awayTeam.name }}</a>
+                                    <a href="/team/{{ match.awayTeam.externalId }}?league={{ lg }}">{{ match.awayTeam.name }}</a>
                                 </td>
                                 <td rowspan="{{ row.bets|length }}" style="font-weight:600;">
                                     {{ match.homeGoalsFt }}–{{ match.awayGoalsFt }}

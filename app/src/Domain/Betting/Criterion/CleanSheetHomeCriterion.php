@@ -15,7 +15,7 @@ class CleanSheetHomeCriterion implements BetCriterionInterface
 
     public function evaluate(TeamMatchStats $homeStats, TeamMatchStats $awayStats): ?string
     {
-        if ($homeStats->matchesPlayedHome < 5) {
+        if ($homeStats->matchesPlayedHome < 3) {
             return null;
         }
 

@@ -52,6 +52,15 @@ services:
         autowire: true
         public: true
 
+    App\Domain\Betting\Repository\SeasonStatsRepositoryInterface:
+        class: App\Infrastructure\Betting\Persistence\Doctrine\DoctrineSeasonStatsRepository
+        autowire: true
+        public: true
+
+    App\Application\Betting\Service\BetStatsService:
+        autowire: true
+        public: true
+
     App\Infrastructure\Tracking\Http\Controller\DashboardController:
         autowire: true
         public: true

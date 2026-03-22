@@ -15,10 +15,10 @@ class BttsCriterion implements BetCriterionInterface
 
     public function evaluate(TeamMatchStats $homeStats, TeamMatchStats $awayStats): ?string
     {
-        $homeTriggered = $homeStats->matchesPlayedHome >= 5
+        $homeTriggered = $homeStats->matchesPlayedHome >= 3
             && $homeStats->bttsHome / $homeStats->matchesPlayedHome >= 0.65;
 
-        $awayTriggered = $awayStats->matchesPlayedAway >= 5
+        $awayTriggered = $awayStats->matchesPlayedAway >= 3
             && $awayStats->bttsAway / $awayStats->matchesPlayedAway >= 0.65;
 
         if ($homeTriggered && $awayTriggered) {

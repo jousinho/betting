@@ -46,6 +46,9 @@ services:
     App\Domain\Betting\Repository\BetRepositoryInterface:
         class: App\Infrastructure\Betting\Persistence\Doctrine\DoctrineBetRepository
 
+    App\Domain\Betting\Repository\SeasonStatsRepositoryInterface:
+        class: App\Infrastructure\Betting\Persistence\Doctrine\DoctrineSeasonStatsRepository
+
     App\Infrastructure\Tracking\Http\Controller\DashboardController:
         autowire: true
         tags: ['controller.service_arguments']

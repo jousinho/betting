@@ -15,10 +15,10 @@ class Under25Criterion implements BetCriterionInterface
 
     public function evaluate(TeamMatchStats $homeStats, TeamMatchStats $awayStats): ?string
     {
-        $homeTriggered = $homeStats->matchesPlayedHome >= 5
+        $homeTriggered = $homeStats->matchesPlayedHome >= 3
             && ($homeStats->matchesPlayedHome - $homeStats->over25Home) / $homeStats->matchesPlayedHome >= 0.60;
 
-        $awayTriggered = $awayStats->matchesPlayedAway >= 5
+        $awayTriggered = $awayStats->matchesPlayedAway >= 3
             && ($awayStats->matchesPlayedAway - $awayStats->over25Away) / $awayStats->matchesPlayedAway >= 0.60;
 
         if ($homeTriggered && $awayTriggered) {
