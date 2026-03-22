@@ -1,1 +1,32 @@
-services: {}
+services:
+    App\Domain\Tracking\Repository\CompetitionRepositoryInterface:
+        class: App\Infrastructure\Tracking\Persistence\Doctrine\DoctrineCompetitionRepository
+        autowire: true
+        public: true
+
+    App\Domain\Tracking\Repository\TeamRepositoryInterface:
+        class: App\Infrastructure\Tracking\Persistence\Doctrine\DoctrineTeamRepository
+        autowire: true
+        public: true
+
+    App\Domain\Tracking\Repository\LeagueMatchRepositoryInterface:
+        class: App\Infrastructure\Tracking\Persistence\Doctrine\DoctrineLeagueMatchRepository
+        autowire: true
+        public: true
+
+    App\Domain\Tracking\Repository\NonLeagueMatchRepositoryInterface:
+        class: App\Infrastructure\Tracking\Persistence\Doctrine\DoctrineNonLeagueMatchRepository
+        autowire: true
+        public: true
+
+    App\Domain\Tracking\Repository\SyncStateRepositoryInterface:
+        class: App\Infrastructure\Tracking\Persistence\Doctrine\DoctrineSyncStateRepository
+        autowire: true
+        public: true
+
+    App\Domain\Tracking\Repository\FootballDataProviderInterface:
+        class: App\Infrastructure\Tracking\Http\Client\FootballDataClient
+        arguments:
+            $apiKey: 'test_key'
+        autowire: true
+        public: true
