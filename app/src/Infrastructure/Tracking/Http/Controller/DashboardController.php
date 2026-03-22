@@ -63,9 +63,4 @@ HTML;
         return new JsonResponse(['status' => 'ok']);
     }
 
-    #[Route('/dashboard', name: 'dashboard', methods: ['GET'])]
-    public function dashboard(): Response
-    {
-        return new Response('', Response::HTTP_OK);
-    }
 }

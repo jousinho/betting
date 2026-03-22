@@ -14,9 +14,11 @@ class TeamStatsCalculator
 {
     public function __construct(private readonly LeagueMatchRepositoryInterface $leagueMatchRepository) {}
 
-    public function calculate(Team $team, Competition $competition): TeamMatchStats
+    public function calculate(Team $team, Competition $competition, ?\DateTimeImmutable $before = null): TeamMatchStats
     {
-        $finished = $this->leagueMatchRepository->findFinishedByCompetition($competition);
+        $finished = $before !== null
+            ? $this->leagueMatchRepository->findFinishedByCompetitionBefore($competition, $before)
+            : $this->leagueMatchRepository->findFinishedByCompetition($competition);
 
         $homeMatches = array_values(array_filter($finished, fn(LeagueMatch $m) => $m->homeTeam()->id() == $team->id()));
         $awayMatches = array_values(array_filter($finished, fn(LeagueMatch $m) => $m->awayTeam()->id() == $team->id()));
