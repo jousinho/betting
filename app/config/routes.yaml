@@ -1,0 +1,5 @@
+tracking_controllers:
+    resource:
+        path: ../src/Infrastructure/Tracking/Http/Controller/
+        namespace: App\Infrastructure\Tracking\Http\Controller
+    type: attribute
