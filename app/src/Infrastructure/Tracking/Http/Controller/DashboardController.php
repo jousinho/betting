@@ -61,4 +61,14 @@ HTML;
         return new JsonResponse(['status' => 'ok']);
     }
 
+    #[Route('/sync/force', name: 'sync_force', methods: ['GET'])]
+    public function syncForce(): JsonResponse
+    {
+        foreach ($this->competitionRepository->findAll() as $competition) {
+            $this->syncService->sync($competition, force: true);
+        }
+
+        return new JsonResponse(['status' => 'ok']);
+    }
+
 }
