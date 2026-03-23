@@ -96,6 +96,14 @@ document.querySelectorAll('.tab-link').forEach(function(link) {
             </div>
         </div>
     </div>
+    <div class="stat-card">
+        <div class="label">ROI estimado</div>
+        {% if d.roi is defined and d.roi is not null %}
+            <div class="value" style="color:{{ d.roi >= 0 ? '#4ade80' : '#f87171' }}">{{ d.roi >= 0 ? '+' : '' }}{{ d.roi }}%</div>
+        {% else %}
+            <div class="value" style="color:#475569">—</div>
+        {% endif %}
+    </div>
 </div>
 
 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
@@ -110,6 +118,7 @@ document.querySelectorAll('.tab-link').forEach(function(link) {
                     <th>Tipo</th>
                     <th style="text-align:right">% acierto</th>
                     <th>W / T</th>
+                    <th style="text-align:right">ROI</th>
                 </tr>
             </thead>
             <tbody>
@@ -123,6 +132,9 @@ document.querySelectorAll('.tab-link').forEach(function(link) {
                         </span>
                     </td>
                     <td style="color:#64748b; font-size:0.8rem">{{ g.won }} / {{ g.total }}</td>
+                    <td style="text-align:right; font-size:0.82rem; font-variant-numeric:tabular-nums; color:{% if g.roi is defined and g.roi is not null %}{{ g.roi >= 0 ? '#4ade80' : '#f87171' }}{% else %}#475569{% endif %}">
+                        {% if g.roi is defined and g.roi is not null %}{{ g.roi >= 0 ? '+' : '' }}{{ g.roi }}%{% else %}—{% endif %}
+                    </td>
                 </tr>
             {% endfor %}
             </tbody>
@@ -171,6 +183,7 @@ document.querySelectorAll('.tab-link').forEach(function(link) {
                     <th>Equipo</th>
                     <th style="text-align:right">% acierto</th>
                     <th>W / T</th>
+                    <th style="text-align:right">ROI</th>
                 </tr>
             </thead>
             <tbody>
@@ -184,6 +197,9 @@ document.querySelectorAll('.tab-link').forEach(function(link) {
                         </span>
                     </td>
                     <td style="color:#64748b; font-size:0.8rem">{{ g.won }} / {{ g.total }}</td>
+                    <td style="text-align:right; font-size:0.82rem; font-variant-numeric:tabular-nums; color:{% if g.roi is defined and g.roi is not null %}{{ g.roi >= 0 ? '#4ade80' : '#f87171' }}{% else %}#475569{% endif %}">
+                        {% if g.roi is defined and g.roi is not null %}{{ g.roi >= 0 ? '+' : '' }}{{ g.roi }}%{% else %}—{% endif %}
+                    </td>
                 </tr>
             {% endfor %}
             </tbody>
@@ -204,6 +220,9 @@ document.querySelectorAll('.tab-link').forEach(function(link) {
             </span>
             <span style="width:36px; text-align:right; font-weight:600; font-size:0.78rem; color:{% if g.rate >= 65 %}#4ade80{% elseif g.rate >= 50 %}#eab308{% else %}#f87171{% endif %}">{{ g.rate }}%</span>
             <span class="count">{{ g.won }}/{{ g.total }}</span>
+            <span style="width:52px; text-align:right; font-size:0.75rem; color:{% if g.roi is defined and g.roi is not null %}{{ g.roi >= 0 ? '#4ade80' : '#f87171' }}{% else %}#334155{% endif %}">
+                {% if g.roi is defined and g.roi is not null %}{{ g.roi >= 0 ? '+' : '' }}{{ g.roi }}%{% else %}—{% endif %}
+            </span>
         </div>
     {% endfor %}
 </div>

@@ -12,7 +12,7 @@ use App\Domain\Tracking\Repository\LeagueMatchRepositoryInterface;
 class OddsSyncService
 {
     private const SPORT_KEY       = 'soccer_spain_la_liga';
-    private const DAYS_AHEAD      = 14;
+    private const DAYS_AHEAD      = 10;
     private const PREFERRED_BOOKS = ['bet365', 'pinnacle'];
 
     public function __construct(

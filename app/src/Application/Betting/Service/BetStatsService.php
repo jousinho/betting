@@ -13,6 +13,8 @@ class BetStatsService
     {
         $won           = 0;
         $lost          = 0;
+        $oddsCount     = 0;
+        $oddsWonSum    = 0.0;
         $byType        = [];
         $byMatchday    = [];
         $byPerspective = [];
@@ -25,30 +27,48 @@ class BetStatsService
             $persp    = $bet->perspective();
             $homeTeam = $bet->leagueMatch()->homeTeam()->name();
             $awayTeam = $bet->leagueMatch()->awayTeam()->name();
+            $odds     = $bet->odds();
+            $hasOdds  = $odds !== null;
 
             $isWon ? $won++ : $lost++;
 
-            $byType[$type]['won']   = ($byType[$type]['won']  ?? 0) + ($isWon ? 1 : 0);
-            $byType[$type]['total'] = ($byType[$type]['total'] ?? 0) + 1;
+            if ($hasOdds) {
+                $oddsCount++;
+                if ($isWon) { $oddsWonSum += $odds; }
+            }
 
-            $byMatchday[$matchday]['won']   = ($byMatchday[$matchday]['won']  ?? 0) + ($isWon ? 1 : 0);
-            $byMatchday[$matchday]['total'] = ($byMatchday[$matchday]['total'] ?? 0) + 1;
+            $byType[$type]['won']       = ($byType[$type]['won']       ?? 0)   + ($isWon ? 1 : 0);
+            $byType[$type]['total']     = ($byType[$type]['total']     ?? 0)   + 1;
+            $byType[$type]['oddsCount'] = ($byType[$type]['oddsCount'] ?? 0)   + ($hasOdds ? 1 : 0);
+            $byType[$type]['oddsWon']   = ($byType[$type]['oddsWon']   ?? 0.0) + ($hasOdds && $isWon ? $odds : 0.0);
 
-            $byPerspective[$persp]['won']   = ($byPerspective[$persp]['won']  ?? 0) + ($isWon ? 1 : 0);
-            $byPerspective[$persp]['total'] = ($byPerspective[$persp]['total'] ?? 0) + 1;
+            $byMatchday[$matchday]['won']       = ($byMatchday[$matchday]['won']       ?? 0)   + ($isWon ? 1 : 0);
+            $byMatchday[$matchday]['total']     = ($byMatchday[$matchday]['total']     ?? 0)   + 1;
+            $byMatchday[$matchday]['oddsCount'] = ($byMatchday[$matchday]['oddsCount'] ?? 0)   + ($hasOdds ? 1 : 0);
+            $byMatchday[$matchday]['oddsWon']   = ($byMatchday[$matchday]['oddsWon']   ?? 0.0) + ($hasOdds && $isWon ? $odds : 0.0);
+
+            $byPerspective[$persp]['won']       = ($byPerspective[$persp]['won']       ?? 0)   + ($isWon ? 1 : 0);
+            $byPerspective[$persp]['total']     = ($byPerspective[$persp]['total']     ?? 0)   + 1;
+            $byPerspective[$persp]['oddsCount'] = ($byPerspective[$persp]['oddsCount'] ?? 0)   + ($hasOdds ? 1 : 0);
+            $byPerspective[$persp]['oddsWon']   = ($byPerspective[$persp]['oddsWon']   ?? 0.0) + ($hasOdds && $isWon ? $odds : 0.0);
 
             foreach ([$homeTeam, $awayTeam] as $teamName) {
-                $byTeam[$teamName]['won']   = ($byTeam[$teamName]['won']  ?? 0) + ($isWon ? 1 : 0);
-                $byTeam[$teamName]['total'] = ($byTeam[$teamName]['total'] ?? 0) + 1;
+                $byTeam[$teamName]['won']       = ($byTeam[$teamName]['won']       ?? 0)   + ($isWon ? 1 : 0);
+                $byTeam[$teamName]['total']     = ($byTeam[$teamName]['total']     ?? 0)   + 1;
+                $byTeam[$teamName]['oddsCount'] = ($byTeam[$teamName]['oddsCount'] ?? 0)   + ($hasOdds ? 1 : 0);
+                $byTeam[$teamName]['oddsWon']   = ($byTeam[$teamName]['oddsWon']   ?? 0.0) + ($hasOdds && $isWon ? $odds : 0.0);
             }
         }
 
-        $rate = fn(array $g) => $g['total'] > 0 ? round($g['won'] / $g['total'] * 100) : 0;
+        $rate  = fn(array $g) => $g['total'] > 0 ? round($g['won'] / $g['total'] * 100) : 0;
+        $roiFn = fn(array $g) => ($g['oddsCount'] ?? 0) > 0
+            ? round(($g['oddsWon'] - $g['oddsCount']) / $g['oddsCount'] * 100, 1)
+            : null;
 
-        foreach ($byType        as &$g) { $g['rate'] = $rate($g); } unset($g);
-        foreach ($byMatchday    as &$g) { $g['rate'] = $rate($g); } unset($g);
-        foreach ($byPerspective as &$g) { $g['rate'] = $rate($g); } unset($g);
-        foreach ($byTeam        as &$g) { $g['rate'] = $rate($g); } unset($g);
+        foreach ($byType        as &$g) { $g['rate'] = $rate($g); $g['roi'] = $roiFn($g); } unset($g);
+        foreach ($byMatchday    as &$g) { $g['rate'] = $rate($g); $g['roi'] = $roiFn($g); } unset($g);
+        foreach ($byPerspective as &$g) { $g['rate'] = $rate($g); $g['roi'] = $roiFn($g); } unset($g);
+        foreach ($byTeam        as &$g) { $g['rate'] = $rate($g); $g['roi'] = $roiFn($g); } unset($g);
 
         uasort($byType, fn($a, $b) => $b['rate'] <=> $a['rate']);
         ksort($byMatchday);
@@ -56,12 +76,16 @@ class BetStatsService
 
         $topTeams  = array_slice($byTeam, 0, 10, true);
         $totalBets = $won + $lost;
+        $globalRoi = $oddsCount > 0
+            ? round(($oddsWonSum - $oddsCount) / $oddsCount * 100, 1)
+            : null;
 
         return [
             'won'           => $won,
             'lost'          => $lost,
             'total'         => $totalBets,
             'rate'          => $totalBets > 0 ? round($won / $totalBets * 100) : 0,
+            'roi'           => $globalRoi,
             'byType'        => $byType,
             'byMatchday'    => $byMatchday,
             'byPerspective' => $byPerspective,

@@ -19,6 +19,7 @@
                         <th>Resultado</th>
                         <th>Tipo</th>
                         <th>Perspectiva</th>
+                        <th>Cuota</th>
                         <th>Resultado apuesta</th>
                     </tr>
                 </thead>
@@ -44,6 +45,9 @@
                                 {% if bet.perspective == 'home' %}🏠 Local
                                 {% elseif bet.perspective == 'away' %}✈️ Visitante
                                 {% else %}⇄ Ambos{% endif %}
+                            </td>
+                            <td style="text-align:right; font-variant-numeric:tabular-nums; color:{% if bet.odds is not null %}#f1f5f9{% else %}#475569{% endif %}">
+                                {% if bet.odds is not null %}{{ bet.odds|number_format(2) }}{% else %}—{% endif %}
                             </td>
                             <td>
                                 {% if bet.skipped %}

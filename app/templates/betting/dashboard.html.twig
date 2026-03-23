@@ -142,6 +142,9 @@
                                     <span class="badge badge-bet" title="{{ bet.perspective }}">
                                         {{ bet.betType|replace({'_': ' '})|upper }}
                                         {% if bet.perspective == 'home' %}🏠{% elseif bet.perspective == 'away' %}✈️{% elseif bet.perspective == 'both' %}⇄{% endif %}
+                                        {% if bet.odds is not null %}
+                                            <span style="color:#94a3b8; font-size:0.72rem; margin-left:2px;">{{ bet.odds|number_format(2) }}</span>
+                                        {% endif %}
                                     </span>
                                 {% endfor %}
                             {% endif %}
