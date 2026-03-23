@@ -54,6 +54,9 @@ class LeagueMatch
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $awayGoalsHt = null;
 
+    #[ORM\Column(type: 'string', nullable: true)]
+    private ?string $oddsEventId = null;
+
     private function __construct(
         Uuid $id,
         int $externalId,
@@ -151,5 +154,15 @@ class LeagueMatch
     public function awayGoalsHt(): ?int
     {
         return $this->awayGoalsHt;
+    }
+
+    public function oddsEventId(): ?string
+    {
+        return $this->oddsEventId;
+    }
+
+    public function setOddsEventId(string $oddsEventId): void
+    {
+        $this->oddsEventId = $oddsEventId;
     }
 }

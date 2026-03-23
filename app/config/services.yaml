@@ -46,6 +46,11 @@ services:
     App\Domain\Betting\Repository\BetRepositoryInterface:
         class: App\Infrastructure\Betting\Persistence\Doctrine\DoctrineBetRepository
 
+    App\Domain\Betting\Repository\OddsProviderInterface:
+        class: App\Infrastructure\Betting\Http\Client\TheOddsApiClient
+        arguments:
+            $apiKey: '%env(ODDS_API_KEY)%'
+
     App\Domain\Betting\Repository\SeasonStatsRepositoryInterface:
         class: App\Infrastructure\Betting\Persistence\Doctrine\DoctrineSeasonStatsRepository
 

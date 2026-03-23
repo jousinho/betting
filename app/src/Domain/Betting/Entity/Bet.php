@@ -39,6 +39,9 @@ class Bet
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $settledAt = null;
 
+    #[ORM\Column(type: 'float', nullable: true)]
+    private ?float $odds = null;
+
     private function __construct(
         Uuid $id,
         LeagueMatch $leagueMatch,
@@ -102,5 +105,15 @@ class Bet
     public function settledAt(): ?\DateTimeImmutable
     {
         return $this->settledAt;
+    }
+
+    public function odds(): ?float
+    {
+        return $this->odds;
+    }
+
+    public function setOdds(?float $odds): void
+    {
+        $this->odds = $odds;
     }
 }

@@ -25,6 +25,9 @@ class Team
     #[ORM\JoinColumn(nullable: false)]
     private Competition $competition;
 
+    #[ORM\Column(type: 'string', nullable: true)]
+    private ?string $oddsName = null;
+
     private function __construct(Uuid $id, int $externalId, string $name, Competition $competition)
     {
         $this->id = $id;
@@ -61,5 +64,15 @@ class Team
     public function setName(string $name): void
     {
         $this->name = $name;
+    }
+
+    public function oddsName(): ?string
+    {
+        return $this->oddsName;
+    }
+
+    public function setOddsName(?string $oddsName): void
+    {
+        $this->oddsName = $oddsName;
     }
 }

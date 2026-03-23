@@ -70,6 +70,26 @@ class DoctrineBetRepository implements BetRepositoryInterface
         )->setParameter('competition', $competition)->execute();
     }
 
+    public function findPendingWithoutOddsWithinDays(Competition $competition, int $days): array
+    {
+        $cutoff = new \DateTimeImmutable(sprintf('+%d days', $days));
+
+        return $this->entityManager->createQueryBuilder()
+            ->select('b')
+            ->from(Bet::class, 'b')
+            ->join('b.leagueMatch', 'm')
+            ->where('m.competition = :competition')
+            ->andWhere('b.status = :status')
+            ->andWhere('b.odds IS NULL')
+            ->andWhere('b.skipped = false')
+            ->andWhere('m.playedAt <= :cutoff')
+            ->setParameter('competition', $competition)
+            ->setParameter('status', Bet::STATUS_PENDING)
+            ->setParameter('cutoff', $cutoff)
+            ->getQuery()
+            ->getResult();
+    }
+
     public function existsForMatchAndType(LeagueMatch $match, string $betType): bool
     {
         $count = (int) $this->entityManager->createQueryBuilder()

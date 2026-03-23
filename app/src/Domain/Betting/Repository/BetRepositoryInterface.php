@@ -24,4 +24,7 @@ interface BetRepositoryInterface
     public function existsForMatchAndType(LeagueMatch $match, string $betType): bool;
 
     public function clearByCompetition(Competition $competition): void;
+
+    /** @return Bet[] PENDING, sin odds, con partido a ≤ $days días */
+    public function findPendingWithoutOddsWithinDays(Competition $competition, int $days): array;
 }
