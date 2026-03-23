@@ -12,7 +12,7 @@ use App\Domain\Tracking\Repository\LeagueMatchRepositoryInterface;
 class OddsSyncService
 {
     private const SPORT_KEY       = 'soccer_spain_la_liga';
-    private const DAYS_AHEAD      = 7;
+    private const DAYS_AHEAD      = 14;
     private const PREFERRED_BOOKS = ['bet365', 'pinnacle'];
 
     public function __construct(
@@ -29,7 +29,11 @@ class OddsSyncService
             return;
         }
 
-        $bulkOdds = $this->oddsProvider->fetchBulkOdds(self::SPORT_KEY);
+        try {
+            $bulkOdds = $this->oddsProvider->fetchBulkOdds(self::SPORT_KEY);
+        } catch (\Throwable) {
+            return;
+        }
         $bulkByTeams = $this->indexByTeamNames($bulkOdds);
 
         $eventOddsCache = [];
@@ -115,7 +119,11 @@ class OddsSyncService
     private function pickEventMarket(string $betType, mixed $match, string $eventId, array &$cache): ?float
     {
         if (!isset($cache[$eventId])) {
-            $cache[$eventId] = $this->oddsProvider->fetchEventOdds($eventId, self::SPORT_KEY);
+            try {
+                $cache[$eventId] = $this->oddsProvider->fetchEventOdds($eventId, self::SPORT_KEY);
+            } catch (\Throwable) {
+                return null;
+            }
         }
 
         $bookmakers = $cache[$eventId]['bookmakers'];
