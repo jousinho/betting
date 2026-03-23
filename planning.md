@@ -325,3 +325,78 @@ Vista detallada de un equipo: historial de partidos con sus apuestas + stats de 
 
 - Soporte multi-liga activo (el diseño lo permite, pero solo LaLiga por ahora)
 - Persistencia de stats históricas entre temporadas (definir en Fase 3)
+
+---
+
+## Fase 3 — Cuotas + Mejoras de UX
+
+### Integración de cuotas — The Odds API
+
+Mostrar la cuota de mercado junto a cada apuesta generada para poder valorar
+la rentabilidad real, no solo el % de acierto.
+
+**Fuente:** The Odds API (the-odds-api.com) — free tier 500 créditos/mes.
+**API key:** variable de entorno `ODDS_API_KEY` (nunca en el repo).
+
+**Markets disponibles para La Liga:**
+
+| Market API | Bet types cubiertos |
+|---|---|
+| `h2h` (bulk) | `home_win`, `away_win` |
+| `totals` (bulk, solo línea 2.5) | `over_2_5`, `under_2_5` |
+| `btts` (por partido) | `btts` |
+| `double_chance` (por partido) | `double_chance` |
+
+Sin cobertura: `over_1_5`, `over_3_5`, `over_0_5_ht`, `win_both_halves`, `clean_sheet_home`.
+
+**Estrategia de llamadas (por jornada):**
+1. 1 llamada bulk → `h2h` + `totals` para todos los partidos upcoming (~2 créditos)
+2. 1 llamada por partido → `btts` + `double_chance` (~20 créditos para 10 partidos)
+Total por jornada: ~22 créditos. Con 500/mes cubre holgadamente.
+
+**Matching de equipos:**
+The Odds API usa nombres distintos a football-data.org (ej. "Rayo Vallecano" vs
+"Rayo Vallecano de Madrid"). Se resuelve con un mapa de equivalencias en config
+(`config/odds_team_mapping.php`) mantenido a mano.
+
+**Cuándo sincronizar cuotas:**
+Una sola vez por apuesta, cuando el partido está a **7 días o menos** y la bet aún
+no tiene cuota asignada. No se vuelve a consultar después — es una cuota orientativa
+para el análisis de rentabilidad, no la cuota final pre-partido.
+El trigger es el sync diario: si encuentra bets PENDING sin odds y con partido en ≤7 días,
+lanza la consulta.
+
+**Matching de equipos:**
+Campo `odds_name: ?string` añadido a `Team`. Se rellena manualmente (o en el seed
+si los nombres coinciden) y es lo que se pasa a la API. Si es null, se omite la
+consulta de cuotas para ese partido.
+
+**Modelo de datos:**
+Campo `odds: ?float` añadido a `Bet`. Una sola cuota por apuesta — la de Bet365
+si está disponible en la respuesta, si no la de Pinnacle, si no null.
+Simple, como añadir una columna a la tabla.
+
+**Objetivo principal — ROI:**
+Las cuotas no son para mostrarlas simplemente al lado de cada apuesta. El valor real
+está en calcular el ROI por dimensión:
+- Por tipo de apuesta: ¿Over 2.5 es rentable al precio de mercado?
+- Por equipo: ¿apostar al Real Madrid local genera ROI positivo?
+- Por jornada: ¿hay degradación del sistema a lo largo de la temporada?
+
+Fórmula: `ROI = (sum(odds_referencia de bets WON) - count(bets)) / count(bets) × 100`
+
+**Historial:** The Odds API solo tiene histórico en planes de pago. Las cuotas
+se acumulan a partir de la integración — partidos anteriores quedan sin cuota.
+Es una limitación asumida.
+
+---
+
+### Botón de sincronización manual
+
+El sync automático ocurre una vez al día al entrar en `/`. Si se abre la app antes de que
+terminen los partidos del día anterior, esa sync ya queda marcada como "hecha hoy" y no
+vuelve a ejecutarse aunque haya datos pendientes.
+
+Se añade un botón "Sincronizar" visible en todas las páginas (nav bar) que fuerza la sync
+saltándose el check de `isSyncedToday()`. El botón muestra feedback visual (spinner) mientras
+trabaja y recarga la página al terminar.

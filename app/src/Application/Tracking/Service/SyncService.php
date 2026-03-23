@@ -24,11 +24,11 @@ class SyncService
         private readonly BetGeneratorService $generatorService,
     ) {}
 
-    public function sync(Competition $competition): void
+    public function sync(Competition $competition, bool $force = false): void
     {
         $syncState = $this->syncStateRepository->findByCompetition($competition);
 
-        if ($syncState !== null && $syncState->isSyncedToday()) {
+        if (!$force && $syncState !== null && $syncState->isSyncedToday()) {
             return;
         }
 
@@ -43,21 +43,10 @@ class SyncService
     {
         $pendingMatches = $this->leagueMatchRepository->findPendingByCompetition($competition);
 
-        if (empty($pendingMatches)) {
-            return;
-        }
-
-        $allResults = $this->provider->fetchLeagueMatches($competition->code());
-
-        $resultsByExternalId = [];
-        foreach ($allResults as $result) {
-            $resultsByExternalId[$result['id']] = $result;
-        }
-
         foreach ($pendingMatches as $match) {
-            $result = $resultsByExternalId[$match->externalId()] ?? null;
+            $result = $this->provider->fetchLeagueMatchResult($match->externalId());
 
-            if ($result === null || $result['homeGoalsFt'] === null) {
+            if ($result['homeGoalsFt'] === null) {
                 continue;
             }
 

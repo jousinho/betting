@@ -57,7 +57,7 @@ class SyncServiceTest extends IntegrationTestCase
 
     public function test_syncing__when_no_pending_matches__should_not_call_api(): void
     {
-        $this->provider->expects($this->never())->method('fetchLeagueMatches');
+        $this->provider->expects($this->never())->method('fetchLeagueMatchResult');
 
         $this->syncService->sync($this->competition);
     }
@@ -67,9 +67,9 @@ class SyncServiceTest extends IntegrationTestCase
         $this->createPastLeagueMatch(1001);
 
         $this->provider->expects($this->once())
-            ->method('fetchLeagueMatches')
-            ->with('PD')
-            ->willReturn([$this->matchResult(1001, 2, 1, 1, 0)]);
+            ->method('fetchLeagueMatchResult')
+            ->with(1001)
+            ->willReturn($this->matchResult(2, 1, 1, 0));
 
         $this->syncService->sync($this->competition);
         $this->entityManager->clear();
@@ -87,7 +87,7 @@ class SyncServiceTest extends IntegrationTestCase
         $nlMatch = NonLeagueMatch::create(9001, $this->homeTeam, new \DateTimeImmutable('yesterday'), 'Copa del Rey');
         $this->nonLeagueMatchRepository->save($nlMatch);
 
-        $this->provider->expects($this->never())->method('fetchLeagueMatches');
+        $this->provider->expects($this->never())->method('fetchLeagueMatchResult');
 
         $this->syncService->sync($this->competition);
         $this->entityManager->clear();
@@ -101,11 +101,11 @@ class SyncServiceTest extends IntegrationTestCase
         $this->createPastLeagueMatch(1001);
         $this->createPastLeagueMatch(1002, homeId: 81, awayId: 86);
 
-        $this->provider->expects($this->once())
-            ->method('fetchLeagueMatches')
-            ->willReturn([
-                $this->matchResult(1001, 1, 0, 1, 0),
-                $this->matchResult(1002, 0, 1, 0, 0),
+        $this->provider->expects($this->exactly(2))
+            ->method('fetchLeagueMatchResult')
+            ->willReturnMap([
+                [1001, $this->matchResult(1, 0, 1, 0)],
+                [1002, $this->matchResult(0, 1, 0, 0)],
             ]);
 
         $this->syncService->sync($this->competition);
@@ -123,14 +123,35 @@ class SyncServiceTest extends IntegrationTestCase
         $syncState->markSynced(new \DateTimeImmutable());
         $this->syncStateRepository->save($syncState);
 
-        $this->provider->expects($this->never())->method('fetchLeagueMatches');
+        $this->provider->expects($this->never())->method('fetchLeagueMatchResult');
 
         $this->syncService->sync($this->competition);
     }
 
+    public function test_syncing__when_already_synced_today_but_forced__should_sync_anyway(): void
+    {
+        $this->createPastLeagueMatch(1001);
+
+        $syncState = SyncState::create($this->competition);
+        $syncState->markSynced(new \DateTimeImmutable());
+        $this->syncStateRepository->save($syncState);
+
+        $this->provider->expects($this->once())
+            ->method('fetchLeagueMatchResult')
+            ->with(1001)
+            ->willReturn($this->matchResult(3, 0, 1, 0));
+
+        $this->syncService->sync($this->competition, force: true);
+        $this->entityManager->clear();
+
+        $updated = $this->leagueMatchRepository->findByExternalId(1001);
+        $this->assertSame('FINISHED', $updated->status());
+        $this->assertSame(3, $updated->homeGoalsFt());
+    }
+
     public function test_syncing__when_never_synced__should_sync_and_save_sync_state(): void
     {
-        $this->provider->expects($this->never())->method('fetchLeagueMatches');
+        $this->provider->expects($this->never())->method('fetchLeagueMatchResult');
 
         $this->syncService->sync($this->competition);
         $this->entityManager->clear();
@@ -143,7 +164,7 @@ class SyncServiceTest extends IntegrationTestCase
 
     public function test_syncing__when_last_sync_was_yesterday__should_sync_and_update_sync_state(): void
     {
-        $this->provider->expects($this->never())->method('fetchLeagueMatches');
+        $this->provider->expects($this->never())->method('fetchLeagueMatchResult');
 
         $syncState = SyncState::create($this->competition);
         $syncState->markSynced(new \DateTimeImmutable('yesterday'));
@@ -174,15 +195,9 @@ class SyncServiceTest extends IntegrationTestCase
         return $match;
     }
 
-    private function matchResult(int $id, int $hFt, int $aFt, int $hHt, int $aHt): array
+    private function matchResult(int $hFt, int $aFt, int $hHt, int $aHt): array
     {
         return [
-            'id'          => $id,
-            'matchday'    => 1,
-            'playedAt'    => 'yesterday',
-            'status'      => 'FINISHED',
-            'homeTeamId'  => 86,
-            'awayTeamId'  => 81,
             'homeGoalsFt' => $hFt,
             'awayGoalsFt' => $aFt,
             'homeGoalsHt' => $hHt,

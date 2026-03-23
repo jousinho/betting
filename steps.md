@@ -474,3 +474,173 @@ Casos:
 - `test_dashboard__should_list_upcoming_matches_with_active_bets`
 - `test_history__should_list_finished_matches_with_outcomes`
 - `test_team_stats__should_show_bet_stats_for_team`
+
+---
+
+## STEP 13 — Integración de cuotas (The Odds API)
+
+### Objetivo
+Almacenar la cuota de mercado junto a cada `Bet` para mostrarla en el dashboard
+e historial, permitiendo valorar rentabilidad real además del % de acierto.
+
+### 1. Variable de entorno
+```
+app/.env.example  → añadir ODDS_API_KEY=
+app/.env.local    → ODDS_API_KEY=<tu_key_real>  (no se commitea)
+```
+
+### 2. Migración — campo `odds` en `Bet`
+```
+src/Domain/Betting/Entity/Bet.php
+```
+Añadir `private ?float $odds = null` con getter `odds(): ?float` y setter `setOdds(?float $odds): void`.
+
+Generar migración única con los tres cambios (odds en Bet + odds_name en Team + odds_event_id en LeagueMatch):
+```
+docker compose exec -T php-cli php bin/console doctrine:migrations:diff
+docker compose exec -T php-cli php bin/console doctrine:migrations:migrate
+```
+
+### 3. Interfaz del proveedor de cuotas
+```
+src/Domain/Betting/Repository/OddsProviderInterface.php
+```
+```php
+fetchOdds(string $sportKey, string $markets): array   // llamada bulk
+fetchEventOdds(string $eventId, string $markets): array  // por partido
+```
+
+### 4. Cliente HTTP — TheOddsApiClient
+```
+src/Infrastructure/Betting/Http/Client/TheOddsApiClient.php
+```
+Implementa `OddsProviderInterface`. Usa `symfony/http-client`.
+Base URL: `https://api.the-odds-api.com/v4`.
+
+Dos métodos:
+- `fetchOdds('soccer_spain_la_liga', 'h2h,totals')` → array indexado por `[home_team][away_team]`
+- `fetchEventOdds(string $eventId, 'btts,double_chance')` → array de markets
+
+Devuelve siempre la cuota de **Pinnacle** si está disponible (mejor referencia de mercado),
+si no la media de las casas disponibles para ese market.
+
+### 5. Campo `odds_name` en `Team`
+```
+src/Domain/Tracking/Entity/Team.php
+```
+Añadir `private ?string $oddsName = null`. Getter `oddsName(): ?string` y
+setter `setOddsName(?string $oddsName): void`. Nueva migración.
+
+Se rellena a mano desde un comando o directamente en BD. Si es null para algún
+equipo, ese partido se omite en la sync de cuotas.
+
+### 6. Campo `odds_event_id` en `LeagueMatch`
+```
+src/Domain/Tracking/Entity/LeagueMatch.php
+```
+Añadir `private ?string $oddsEventId = null`. Getter + setter. Se rellena la
+primera vez que se encuentra el partido en la respuesta de The Odds API y no
+vuelve a buscarse. Nueva migración (puede ir junto con la de `Team.odds_name`).
+
+### 7. OddsSyncService
+```
+src/Application/Betting/Service/OddsSyncService.php
+```
+`syncForCompetition(Competition $competition): void`
+
+Criterio de elegibilidad: bets PENDING **sin odds** cuyo partido está a **≤ 7 días**.
+
+Flujo:
+1. Obtener bets elegibles. Si no hay ninguna, retornar.
+2. Llamada bulk → `h2h,totals` para `soccer_spain_la_liga` (todos los upcoming)
+3. Indexar respuesta por `[odds_name_local][odds_name_visitante]`
+4. Para cada bet elegible:
+   - Si el partido no tiene `oddsEventId`: buscarlo en el bulk por nombres y guardarlo
+   - Extraer cuota según `bet_type`:
+     - `home_win` → h2h outcome nombre local
+     - `away_win` → h2h outcome nombre visitante
+     - `over_2_5` → totals Over 2.5
+     - `under_2_5` → totals Under 2.5
+     - `btts` / `double_chance` → llamada individual `/events/{oddsEventId}/odds?markets=btts,double_chance`
+   - Si no hay cuota disponible para ese type → dejar null, no reintentar
+5. Seleccionar cuota: Bet365 si está en la respuesta, si no Pinnacle, si no null
+6. `$bet->setOdds($price)` + save
+
+### 8. Integrar OddsSyncService en el flujo de sync
+```
+src/Application/Tracking/Service/SyncService.php   (actualizar)
+```
+Al final de `sync()`, tras `BetGeneratorService::generate()`:
+```php
+$this->oddsSyncService->syncForCompetition($competition);
+```
+
+### 9. ROI en las vistas
+El objetivo principal de las cuotas es el análisis de rentabilidad:
+
+```
+templates/betting/history.html.twig     → cuota de referencia junto a cada bet WON/LOST
+templates/betting/stats.html.twig       → ROI por tipo de apuesta, por equipo, por jornada
+```
+
+Cálculo ROI: `(sum(odds de bets WON) - count(bets con odds)) / count(bets con odds) × 100`
+Solo se incluyen en el ROI las bets que tienen odds asignada.
+Si `bet.odds` es null → "—" en historial, excluida del ROI.
+
+### Tests
+```
+tests/Unit/Application/Betting/OddsSyncServiceTest.php
+```
+Tests unitarios (mock del provider):
+- `test_syncing_odds__when_match_is_more_than_7_days_away__should_skip`
+- `test_syncing_odds__when_bet_already_has_odds__should_skip`
+- `test_syncing_odds__when_h2h_market_available__should_set_odds_on_home_win_bet`
+- `test_syncing_odds__when_totals_available__should_set_odds_on_over25_bet`
+- `test_syncing_odds__when_market_not_available__should_leave_odds_null`
+- `test_syncing_odds__when_odds_name_is_null__should_skip_match`
+- `test_syncing_odds__when_bet365_available__should_use_bet365_odds`
+- `test_syncing_odds__when_bet365_not_available_but_pinnacle_is__should_use_pinnacle`
+
+---
+
+## STEP 14 — Botón de sync manual
+
+### Objetivo
+Permitir forzar la sincronización desde el dashboard aunque ya se haya ejecutado hoy,
+para recuperar partidos que terminaron después del sync automático.
+
+### Cambios
+
+#### 1. `SyncService::sync()` — añadir parámetro `$force`
+```
+src/Application/Tracking/Service/SyncService.php
+```
+Añadir `bool $force = false` al método `sync(Competition $competition, bool $force = false)`.
+Cuando `$force = true`, saltarse el bloque `if ($syncState !== null && $syncState->isSyncedToday())`.
+
+#### 2. `DashboardController` — nuevo endpoint `GET /sync/force`
+```
+src/Infrastructure/Tracking/Http/Controller/DashboardController.php
+```
+Nuevo método `syncForce()` que itera todas las competiciones y llama a
+`$this->syncService->sync($competition, force: true)`.
+Devuelve `JsonResponse(['status' => 'ok'])`.
+
+#### 3. `layout.html.twig` — botón en la nav bar
+```
+app/templates/layout.html.twig
+```
+Añadir a la derecha de los nav-links (antes del league-switcher) un botón "↻ Sync"
+que al hacer clic:
+1. Se deshabilita y muestra un spinner/texto "Sincronizando…"
+2. Lanza `fetch('/sync/force')`
+3. Al resolver, recarga la página con `window.location.reload()`
+
+El botón solo necesita estilos inline mínimos consistentes con el diseño actual (dark, borde sutil).
+
+### Tests a actualizar
+```
+tests/Integration/Infrastructure/Tracking/SyncServiceTest.php
+```
+Añadir caso:
+- `test_syncing__when_already_synced_today_but_forced__should_sync_anyway`
